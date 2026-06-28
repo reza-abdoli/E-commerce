@@ -62,7 +62,8 @@ public class AccountController : SiteBaseController
         var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Role, user.Role)
                 };
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -75,6 +76,9 @@ public class AccountController : SiteBaseController
         await HttpContext.SignInAsync(principal, properties);
 
         TempData[SuccessMessage] = "You logged in successfully.";
+        if(user.Role == "Admin")
+            return RedirectToAction("Dashboard", "Home", new { area = "Admin" });
+        
         return RedirectToAction("Index", "Home", new { area = "" });
     }
 

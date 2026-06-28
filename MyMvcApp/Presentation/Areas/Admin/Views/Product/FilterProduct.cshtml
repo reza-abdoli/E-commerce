@@ -1,0 +1,187 @@
+@using Application.Extensions
+@using Data.DTOs.Product
+@using Data.Entities
+@model Data.DTOs.Product.FilterProductDto
+@{
+    ViewData["Title"] = "مدیریت محصولات";
+    var brands     = ViewData["Brands"]     as List<Brand>           ?? new();
+    var categories = ViewData["Categories"] as List<ProductCategory>  ?? new();
+}
+
+<div class="page-header">
+    <div class="page-sub-title">لیست محصولات</div>
+    <div style="display:flex;gap:8px">
+        <a asp-action="CreateProduct" asp-area="Admin" asp-controller="Product" class="btn-green">
+            <i class="ti ti-plus" aria-hidden="true"></i> افزودن محصول
+        </a>
+        <button type="button" class="btn-blue" onclick="toggleForm('filter-form')">
+            <i class="ti ti-filter" aria-hidden="true"></i> فیلتر اطلاعات
+        </button>
+    </div>
+</div>
+
+<form asp-action="FilterProduct" method="get">
+
+    <div id="filter-form" class="form-card" style="display:none; margin-bottom:1rem">
+        <div class="form-section-title">فیلتر محصولات</div>
+        <div class="two">
+            <div class="fg">
+                <label>عنوان</label>
+                <input asp-for="Title" placeholder="مثال: پیراهن">
+            </div>
+            <div class="fg">
+                <label>دسته‌بندی</label>
+                <select asp-for="CategoryId">
+                    <option value="">همه دسته‌ها</option>
+                    @foreach (var cat in categories.OrderBy(c => c.Title))
+                    {
+                        <option value="@cat.Id">@cat.Title</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>برند</label>
+                <select asp-for="BrandId">
+                    <option value="">همه برندها</option>
+                    @foreach (var brand in brands.OrderBy(b => b.Title))
+                    {
+                        <option value="@brand.Id">@brand.Title</option>
+                    }
+                </select>
+            </div>
+            <div class="fg">
+                <label>وضعیت</label>
+                <select asp-for="ProductStatus"
+                        asp-items="@Html.GetEnumSelectList<FilterProductStatus>()">
+                </select>
+            </div>
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>ترتیب نمایش</label>
+                <select asp-for="ProductOrder"
+                        asp-items="@Html.GetEnumSelectList<FilterProductOrder>()">
+                </select>
+            </div>
+            <div class="fg">
+                <label>بازه قیمت (تومان)</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <input asp-for="StartPrice" type="number" placeholder="از">
+                    <span style="color:var(--text-muted)">تا</span>
+                    <input asp-for="EndPrice" type="number" placeholder="تا">
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-blue">
+                <i class="ti ti-search"></i> جستجو
+            </button>
+            <a asp-action="FilterProduct" class="btn-outline">پاک‌کردن</a>
+        </div>
+    </div>
+
+    <div class="tbl-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:44px">#</th>
+                    <th style="width:66px">تصویر</th>
+                    <th>عنوان</th>
+                    <th style="width:120px">دسته‌بندی</th>
+                    <th style="width:110px">قیمت</th>
+                    <th style="width:80px">موجودی</th>
+                    <th style="width:54px">ID</th>
+                    <th style="width:130px">عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Data != null && Model.Data.Any())
+                {
+                    int i = 1;
+                    @foreach (var product in Model.Data)
+                    {
+                        <tr>
+                            <td>@(i++)</td>
+                            <td>
+                                <div class="img-thumb">
+                                    <img src="@(PathExtension.ProductImageThumb + product.MainImageName)"
+                                         alt="@product.Title"
+                                         style="width:100%;height:100%;object-fit:cover">
+                                </div>
+                            </td>
+                            <td>
+                                <a asp-action="ProductDetail"
+                                   asp-route-productId="@product.Id"
+                                   class="txt-link">
+                                    @product.Title
+                                </a>
+                            </td>
+                            <td>
+                                @if (product.SelectedCategories != null)
+                                {
+                                    @string.Join("، ", product.SelectedCategories
+                                        .Where(sc => sc.Category != null)
+                                        .Select(sc => sc.Category.Title))
+                                }
+                            </td>
+                            <td>
+                                <span style="font-size:12px">
+                                    @product.Price.ToString("N0") تومان
+                                </span>
+                            </td>
+                            <td style="text-align:center">
+                                @(product.ProductVariants?.Sum(v => v.StockCount) ?? 0)
+                            </td>
+                            <td>@product.Id</td>
+                            <td>
+                                <a asp-action="EditProduct"
+                                   asp-route-productId="@product.Id"
+                                   class="badge-edit">ویرایش</a>
+                                <button type="button"
+                                        class="badge-del"
+                                        onclick="confirmDelete(@product.Id, '@product.Title')">
+                                    حذف
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8"
+                            style="text-align:center;color:var(--text-muted);padding:2rem">
+                            <i class="ti ti-mood-empty"
+                               style="font-size:24px;display:block;margin-bottom:6px"></i>
+                            محصولی یافت نشد
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+</form>
+
+@section AdminFooterSection {
+    <script>
+        function confirmDelete(id, title) {
+            Swal.fire({
+                title: 'حذف محصول',
+                text: `آیا از حذف "${title}" مطمئن هستید؟`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'بله، حذف شود',
+                cancelButtonText: 'انصراف',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                width: '28em'
+            }).then(result => {
+                if (result.isConfirmed)
+                    window.location.href = `/Admin/Product/DeleteProduct?productId=${id}`;
+            });
+        }
+    </script>
+}

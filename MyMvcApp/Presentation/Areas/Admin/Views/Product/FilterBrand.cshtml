@@ -1,0 +1,90 @@
+@using Application.Extensions
+@model Data.DTOs.Product.FilterBrandDto
+@{
+    ViewData["Title"] = "مدیریت برند‌ها";
+}
+
+<div class="page-header">
+    <div class="page-sub-title">لیست برند‌ها</div>
+    <div style="display:flex;gap:8px">
+        <a asp-action="CreateBrand" class="btn-green">
+            <i class="ti ti-plus" aria-hidden="true"></i> افزودن آیتم
+        </a>
+        <button class="btn-blue" onclick="toggleForm('filter-form')">
+            <i class="ti ti-filter" aria-hidden="true"></i> فیلتر اطلاعات
+        </button>
+    </div>
+</div>
+
+<div id="filter-form" class="form-card" style="display:none; margin-bottom:1rem">
+    <form asp-action="FilterBrand" method="get">
+        <div class="two">
+            <div class="fg">
+                <label>عنوان</label>
+                <input asp-for="Title" placeholder="مثال: نایک">
+            </div>
+            <div class="fg">
+                <label>URL</label>
+                <input asp-for="Url" placeholder="مثال: nike">
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-blue">
+                <i class="ti ti-search"></i> جستجو
+            </button>
+            <a asp-action="FilterBrand" class="btn-outline">پاک‌کردن</a>
+        </div>
+    </form>
+</div>
+
+<div class="tbl-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:44px">#</th>
+                <th style="width:70px">تصویر</th>
+                <th>عنوان</th>
+                <th>URL</th>
+                <th style="width:100px">ترتیب نمایش</th>
+                <th style="width:60px">ID</th>
+                <th style="width:130px">عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Data != null && Model.Data.Any())
+            {
+                int i = 1;
+                @foreach (var brand in Model.Data)
+                {
+                    <tr>
+                        <td>@(i++)</td>
+                        <td>
+                            <div class="img-thumb">
+                                <img src="@(PathExtension.BrandThumb + brand.ImageName)"
+                                     alt="@brand.Title"
+                                     style="width:100%;height:100%;object-fit:cover">
+                            </div>
+                        </td>
+                        <td>@brand.Title</td>
+                        <td><span class="txt-link mono">@brand.Url</span></td>
+                        <td style="text-align:center">@brand.Order</td>
+                        <td>@brand.Id</td>
+                        <td>
+                            <button class="badge-edit">ویرایش</button>
+                            <button class="badge-del">حذف</button>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">
+                        <i class="ti ti-mood-empty" style="font-size:24px;display:block;margin-bottom:6px"></i>
+                        برندی یافت نشد
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

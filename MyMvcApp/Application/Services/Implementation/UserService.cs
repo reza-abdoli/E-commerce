@@ -30,10 +30,10 @@ public class UserService : IUserService
         await _userRepository.SaveChanges();
     }
 
-    public async Task<bool> GetLogin(RegisterOrLoginDto registerOrLoginDto)
+    public async Task<bool> GetLogin(RegisterOrLoginDto signupLoginDto)
     {
-        var user = await GetUserByUsername(registerOrLoginDto.Username);
-        if(user == null || user.Password != registerOrLoginDto.Password)
+        var user = await GetUserByUsername(signupLoginDto.Username);
+        if(user == null || !BCrypt.Net.BCrypt.Verify(signupLoginDto.Password, user.Password))
             return false;
         return true;
     }

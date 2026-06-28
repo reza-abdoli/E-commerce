@@ -1,0 +1,68 @@
+@{
+    var controller = ViewContext.RouteData.Values["action"]?.ToString();
+}
+<aside class="sb">
+    <div class="sb-logo">
+        <i class="ti ti-diamond" aria-hidden="true"></i>
+        ESHOP
+    </div>
+    <div class="sb-section">
+        <div class="sb-label">منو</div>
+        <a asp-area="Admin" asp-controller="Home" asp-action="Index"
+           class="sb-item @(controller == "Index" ? "active" : "")">
+            <i class="ti ti-home" aria-hidden="true"></i> صفحه اصلی
+        </a>
+        <a asp-area="Admin" asp-controller="Home" asp-action="Dashboard"
+           class="sb-item @(controller == "Dashboard" ? "active" : "")">
+            <i class="ti ti-layout-dashboard" aria-hidden="true"></i> داشبورد
+        </a>
+        <a asp-area="Admin" asp-controller="Order" asp-action="FilterOrder"
+           class="sb-item @(controller == "FilterOrder" ? "active" : "")">
+            <i class="ti ti-shopping-cart" aria-hidden="true"></i> سفارشات
+        </a>
+    </div>
+    <div class="sb-section">
+        <div class="nav-group-header" onclick="toggleGroup('g-product')">
+            <span class="group-label">
+                <i class="ti ti-package" aria-hidden="true"></i> مدیریت محصولات
+            </span>
+            <i class="ti ti-chevron-down open" id="chev-g-product" aria-hidden="true"></i>
+        </div>
+        <div id="g-product" class="sb-sub">
+            <a asp-area="Admin" asp-controller="Product" asp-action="FilterProduct"
+               class="sb-item @(controller == "FilterProduct" ? "active" : "")">
+                <i class="ti ti-shirt" aria-hidden="true"></i> محصولات
+            </a>
+            <a asp-area="Admin" asp-controller="Product" asp-action="FilterCategory"
+               class="sb-item @(controller == "FilterCategory" ? "active" : "")">
+                <i class="ti ti-category" aria-hidden="true"></i> دسته‌بندی‌ها
+            </a>
+            <a asp-area="Admin" asp-controller="Product" asp-action="FilterBrand"
+               class="sb-item @(controller == "FilterBrand" ? "active" : "")">
+                <i class="ti ti-building-store" aria-hidden="true"></i> برند‌ها
+            </a>
+            <a asp-area="Admin" asp-controller="Product" asp-action="FilterColor"
+               class="sb-item @(controller == "FilterColor" ? "active" : "")">
+                <i class="ti ti-palette" aria-hidden="true"></i> رنگ‌ها
+            </a>
+            <a asp-area="Admin" asp-controller="Product" asp-action="FilterSize"
+               class="sb-item @(controller == "FilterSize" || controller == "CreateSize" ? "active" : "")">
+                <i class="ti ti-ruler" aria-hidden="true"></i> سایزها
+            </a>
+        </div>
+    </div>
+    <div class="sb-section">
+        <div class="nav-group-header" onclick="toggleGroup('g-users')">
+            <span class="group-label">
+                <i class="ti ti-users" aria-hidden="true"></i> مدیریت کاربران
+            </span>
+            <i class="ti ti-chevron-down open" id="chev-g-users" aria-hidden="true"></i>
+        </div>
+        <div id="g-users" class="sb-sub">
+            <a asp-area="Admin" asp-controller="User" asp-action="FilterUser"
+               class="sb-item @(controller == "FilterUser" ? "active" : "")">
+                <i class="ti ti-user" aria-hidden="true"></i> کاربران
+            </a>
+        </div>
+    </div>
+</aside>

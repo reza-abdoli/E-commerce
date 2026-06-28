@@ -1,0 +1,80 @@
+@* Views/Admin/Product/FilterColor.cshtml *@
+@model Data.DTOs.Product.FilterColorDto
+@{
+    ViewData["Title"] = "مدیریت رنگ‌ها";
+}
+
+<div class="page-header">
+    <div class="page-sub-title">لیست رنگ‌ها</div>
+    <div style="display:flex;gap:8px">
+        <a asp-action="CreateColor" class="btn-green">
+            <i class="ti ti-plus" aria-hidden="true"></i> افزودن آیتم
+        </a>
+        <button class="btn-blue" onclick="toggleForm('filter-form')">
+            <i class="ti ti-filter" aria-hidden="true"></i> فیلتر اطلاعات
+        </button>
+    </div>
+</div>
+
+<div id="filter-form" class="form-card" style="display:none; margin-bottom:1rem;">
+    <form asp-action="FilterColor" asp-controller="Product" asp-area="" method="get">
+        <div class="fg" style="max-width:300px">
+            <label>جستجو بر اساس عنوان</label>
+            <input asp-for="Title" placeholder="مثال: آبی">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-blue">
+                <i class="ti ti-search"></i> جستجو
+            </button>
+            <a asp-action="FilterColor" class="btn-outline">پاک‌کردن</a>
+        </div>
+    </form>
+</div>
+
+<div class="tbl-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:44px">#</th>
+                <th>عنوان</th>
+                <th style="width:70px">رنگ</th>
+                <th>کد رنگ</th>
+                <th style="width:60px">ID</th>
+                <th style="width:130px">عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Data != null && Model.Data.Any())
+            {
+                int i = 1;
+                @foreach (var color in Model.Data)
+                {
+                    <tr>
+                        <td>@(i++)</td>
+                        <td>@color.Title</td>
+                        <td>
+                            <span class="color-dot"
+                                  style="background:@color.ColorCode">
+                            </span>
+                        </td>
+                        <td><span class="mono">@color.ColorCode</span></td>
+                        <td>@color.Id</td>
+                        <td>
+                            <button class="badge-edit">ویرایش</button>
+                            <button class="badge-del">حذف</button>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem">
+                        <i class="ti ti-mood-empty" style="font-size:24px;display:block;margin-bottom:6px"></i>
+                        رنگی یافت نشد
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

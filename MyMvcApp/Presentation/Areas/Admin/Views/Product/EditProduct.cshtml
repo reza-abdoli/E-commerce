@@ -1,0 +1,145 @@
+@using Data.Entities
+@model Data.DTOs.Product.EditProductDto
+@{
+    ViewData["Title"] = "ویرایش محصول";
+    var brands     = ViewData["Brands"]     as List<Brand>           ?? new();
+    var categories = ViewData["Categories"] as List<ProductCategory>  ?? new List<ProductCategory>();
+}
+
+<div class="page-header">
+    <div class="page-sub-title">ویرایش محصول</div>
+    <a asp-action="ProductDetail" asp-route-productId="@Model.ProductId" class="btn-blue">
+        <i class="ti ti-arrow-right" aria-hidden="true"></i> بازگشت به جزئیات
+    </a>
+</div>
+
+<form asp-action="EditProduct" method="post" enctype="multipart/form-data">
+
+    <input type="hidden" asp-for="ProductId">
+
+    <div class="form-card">
+        <div class="form-section-title">
+            اطلاعات پایه
+            <span class="dto-label">EditProductDto</span>
+        </div>
+
+        <div class="two">
+            <div class="fg">
+                <label asp-for="Title">عنوان محصول</label>
+                <input asp-for="Title" placeholder="مثال: پیراهن اسلیم‌فیت مردانه">
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            <div class="fg">
+                <label asp-for="Price">قیمت پایه — تومان</label>
+                <input asp-for="Price" id="price-input" placeholder="مثال: 450,000">
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="two">
+            <div class="fg">
+                <label asp-for="BrandId">برند</label>
+                <select asp-for="BrandId">
+                    <option value="0">— بدون برند —</option>
+                    @foreach (var brand in brands.OrderBy(b => b.Title))
+                    {
+                        <option value="@brand.Id">@brand.Title</option>
+                    }
+                </select>
+            </div>
+            <div class="fg">
+                <label>وضعیت موجودی (IsAvailable)</label>
+                <div class="toggle-wrap" style="margin-top:8px">
+                    <input type="hidden" asp-for="IsAvailable" id="isAvailable-val">
+                    <div class="toggle @(Model.IsAvailable ? "on" : "")" id="tog-avail"></div>
+                    <span id="tog-avail-label">@(Model.IsAvailable ? "موجود" : "ناموجود")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="fg">
+            <label asp-for="ShortDescription">توضیح کوتاه</label>
+            <textarea asp-for="ShortDescription" rows="2"
+                      placeholder="یک جمله توضیح کوتاه..."></textarea>
+        </div>
+        <div class="fg">
+            <label asp-for="Description">توضیحات کامل</label>
+            <textarea asp-for="Description" rows="4"
+                      placeholder="توضیحات کامل محصول..."></textarea>
+        </div>
+    </div>
+
+    <div class="form-card">
+        <div class="form-section-title">تصویر اصلی</div>
+        <div class="fg">
+            <label asp-for="MainImage">
+                تغییر تصویر اصلی — اختیاری (اگه خالی بمونه تصویر قبلی حفظ میشه)
+            </label>
+            <div class="file-zone" onclick="document.getElementById('main-img').click()">
+                <i class="ti ti-photo" aria-hidden="true"></i>
+                انتخاب تصویر جدید
+                <input asp-for="MainImage"
+                       type="file" id="main-img"
+                       accept="image/*" style="display:none"
+                       onchange="previewImg(this,'main-preview')">
+            </div>
+            <img id="main-preview" class="img-preview" alt="پیش‌نمایش">
+            <span asp-validation-for="MainImage" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="form-card">
+        <div class="form-section-title">دسته‌بندی‌های محصول</div>
+        <p class="hint" style="margin-bottom:10px">
+            دسته‌بندی‌های انتخاب‌شده قبلی تیک خورده‌اند
+        </p>
+        <div style="border:1px solid var(--border); border-radius:8px; padding:14px;
+                    max-height:260px; overflow-y:auto; background:#fafbfc">
+            @await Component.InvokeAsync("SelectedCategories", new
+            {
+                thisId = (long?)null,
+                selectedCategories = Model.Categories,
+                level = 0
+            })
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-green">
+            <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره تغییرات
+        </button>
+        <a asp-action="ProductDetail"
+           asp-route-productId="@Model.ProductId"
+           class="btn-outline">انصراف</a>
+    </div>
+
+</form>
+
+@section AdminFooterSection {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // ─── Toggle IsAvailable ───
+// ─── Toggle IsAvailable ───
+        const tog = document.getElementById('tog-avail');
+        const lbl = document.getElementById('tog-avail-label');
+        const val = document.getElementById('isAvailable-val');
+
+        // مقدار اولیه val رو از وضعیت فعلی toggle بخون
+        val.value = tog.classList.contains('on') ? 'true' : 'false';
+
+        tog.addEventListener('click', () => {
+            tog.classList.toggle('on');
+            const isOn = tog.classList.contains('on');
+            lbl.textContent = isOn ? 'موجود' : 'ناموجود';
+            val.value = isOn ? 'true' : 'false';
+        });
+
+        // ─── فرمت قیمت با جداکننده هزار ───
+        const priceInput = document.getElementById('price-input');
+        priceInput.addEventListener('input', () => {
+            let raw = priceInput.value.replace(/,/g, '');
+            if (!isNaN(raw) && raw !== '')
+                priceInput.value = Number(raw).toLocaleString('en');
+        });
+    </script>
+}

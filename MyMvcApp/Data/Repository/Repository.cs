@@ -43,7 +43,7 @@ namespace Data.Repository
             }
         }
 
-        public async Task<TEntity?> GetEntityById(int entityId)
+        public async Task<TEntity?> GetEntityById(long entityId)
         {
             return await _dBSet.Where(e => e.Id == entityId).SingleOrDefaultAsync();
         }

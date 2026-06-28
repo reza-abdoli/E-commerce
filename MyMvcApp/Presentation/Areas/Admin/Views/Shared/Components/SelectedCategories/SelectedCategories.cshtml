@@ -1,0 +1,40 @@
+@model Data.DTOs.TreeViewCategoriesDto
+
+@if (Model.productCategories != null && Model.productCategories.Any())
+{
+    <ul style="list-style:none; padding-right:@(Model.Level * 18)px; margin:0">
+        @foreach (var item in Model.productCategories)
+        {
+            var isSelected = Model.SelectedCategoriesIds != null 
+                             && Model.SelectedCategoriesIds.Contains(item.Id);
+            <li style="margin:5px 0">
+                <div style="display:flex; align-items:center; gap:8px">
+                    @if (Model.Level > 0)
+                    {
+                        <span style="color:var(--text-muted); font-size:11px; flex-shrink:0">
+                            @(new string('─', Model.Level))
+                        </span>
+                    }
+                    <input type="checkbox"
+                           name="Categories"
+                           id="sel-cat-@item.Id"
+                           value="@item.Id"
+                           @(isSelected ? "checked" : "")
+                           style="width:auto; flex-shrink:0; accent-color:var(--btn-blue)">
+                    <label for="sel-cat-@item.Id"
+                           style="cursor:pointer; margin:0; font-size:13px; color:var(--text-secondary)">
+                        @item.Title
+                    </label>
+                </div>
+
+                @* فراخوانی بازگشتی برای فرزندان *@
+                @await Component.InvokeAsync("SelectedCategories", new
+                {
+                    thisId = item.Id,
+                    selectedCategories = Model.SelectedCategoriesIds,
+                    level = Model.Level + 1
+                })
+            </li>
+        }
+    </ul>
+}

@@ -1,0 +1,29 @@
+﻿
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <partial name="_AdminMetaTags" />
+    <partial name="_AdminHeaderRef" />
+    @RenderSection("AdminHeaderSection", false)
+    <title>@ViewData["Title"] - پنل مدیریت</title>
+</head>
+<body>
+    <div class="wrap">
+
+        <partial name="_AdminSidebar" />
+
+        <div class="main">
+            @* <partial name="_AdminTopbar" />   <%-- topbar ثابت --%> *@
+
+            <div class="content">
+                @RenderBody()
+            </div>
+        </div>
+
+    </div>
+
+    <partial name="_AdminFooterRef" />
+    <partial name="_AdminMessages" />
+    @RenderSection("AdminFooterSection", false)
+</body>
+</html>

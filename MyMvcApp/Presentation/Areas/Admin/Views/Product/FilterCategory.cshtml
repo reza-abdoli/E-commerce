@@ -1,0 +1,170 @@
+@using Application.Extensions
+@using Data.Entities
+@model Data.DTOs.Category.FilterCategoryDto
+@{
+    ViewData["Title"] = "مدیریت دسته‌بندی‌ها";
+    var parentCategories = (List<ProductCategory>) ViewData["ParentCategory"];
+}
+
+<div class="page-header">
+    <div class="page-sub-title">@ViewData["Title"]</div>
+    <div style="display:flex;gap:8px">
+        <a asp-action="CreateCategory" class="btn-green">
+            <i class="ti ti-plus" aria-hidden="true"></i> افزودن آیتم
+        </a>
+        <button type="button" class="btn-blue" onclick="toggleForm('filter-form')">
+            <i class="ti ti-filter" aria-hidden="true"></i> فیلتر اطلاعات
+        </button>
+    </div>
+</div>
+
+<form asp-action="FilterCategory" method="get">
+
+    <div id="filter-form" class="form-card" style="display:none; margin-bottom:1rem">
+        <div class="form-section-title">فیلتر دسته‌بندی‌ها</div>
+        <div class="three">
+            <div class="fg">
+                <label>عنوان</label>
+                <input asp-for="Title" placeholder="مثال: پیراهن">
+            </div>
+            <div class="fg">
+                <label>دسته والد</label>
+                <select asp-for="ParentId">
+                    <option value="">همه</option>
+                    @foreach (var cat in parentCategories)
+                    {
+                        <option value="@cat.Id">@cat.Title</option>
+                    }
+                </select>
+            </div>
+            <div class="fg">
+                <label>وضعیت</label>
+                <select asp-for="CategoryStatus">
+                    <option value="0">همه</option>
+                    <option value="1">فعال</option>
+                    <option value="2">غیرفعال</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-blue">
+                <i class="ti ti-search"></i> جستجو
+            </button>
+            <a asp-action="FilterCategory" class="btn-outline">پاک‌کردن</a>
+        </div>
+    </div>
+
+    <div class="tbl-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:44px">#</th>
+                    <th style="width:66px">تصویر</th>
+                    <th>عنوان</th>
+                    <th style="width:120px">والد</th>
+                    <th>URL</th>
+                    <th style="width:70px">ترتیب</th>
+                    <th style="width:60px">ID</th>
+                    <th style="width:80px">صفحه اصلی</th>
+                    <th style="width:70px">فعال</th>
+                    <th style="width:130px">عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Data != null && Model.Data.Any())
+                {
+                    int i = 1;
+                    @foreach (var cat in Model.Data)
+                    {
+                        <tr>
+                            <td>@(i++)</td>
+                            <td>
+                                <div class="img-thumb">
+                                    <img src="@(PathExtension.CategoryThumb + cat.MainImage)"
+                                         alt="@cat.Title"
+                                         style="width:100%;height:100%;object-fit:cover">
+                                </div>
+                            </td>
+                            <td>@cat.Title</td>
+                            <td>
+                                @if (cat.ParentId != null && cat.Parent != null)
+                                {
+                                    <span>@cat.Parent.Title</span>
+                                }
+                                else
+                                {
+                                    <span style="color:var(--text-muted)">دسته اصلی</span>
+                                }
+                            </td>
+                            <td><span class="txt-link mono">@cat.Url</span></td>
+                            <td style="text-align:center">@cat.Order</td>
+                            <td>@cat.Id</td>
+                            <td style="text-align:center">
+                                @if (cat.ShowInHome)
+                                {
+                                    <i class="ti ti-circle-check icon-ok" aria-label="بله"></i>
+                                }
+                                else
+                                {
+                                    <i class="ti ti-x icon-no" aria-label="خیر"></i>
+                                }
+                            </td>
+                            <td style="text-align:center">
+                                @if (cat.IsActive)
+                                {
+                                    <i class="ti ti-circle-check icon-ok" aria-label="فعال"></i>
+                                }
+                                else
+                                {
+                                    <i class="ti ti-x icon-no" aria-label="غیرفعال"></i>
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="EditCategory"
+                                   asp-route-categoryId="@cat.Id"
+                                   class="badge-edit">ویرایش</a>
+                                <button type="button"
+                                        class="badge-del"
+                                        onclick="confirmDelete(@cat.Id, '@cat.Title')">
+                                    حذف
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10" style="text-align:center;color:var(--text-muted);padding:2rem">
+                            <i class="ti ti-mood-empty" style="font-size:24px;display:block;margin-bottom:6px"></i>
+                            دسته‌بندی یافت نشد
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+</form>
+
+@section AdminFooterSection {
+    <script>
+        function confirmDelete(id, title) {
+            Swal.fire({
+                title: 'حذف دسته‌بندی',
+                text: `آیا از حذف "${title}" مطمئن هستید؟`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'بله، حذف شود',
+                cancelButtonText: 'انصراف',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                width: '28em'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `/Admin/Product/DeleteCategory?categoryId=${id}`;
+                }
+            });
+        }
+    </script>
+}

@@ -1,0 +1,554 @@
+﻿@* <!-- ══ PAGE: Colors ══ -->
+<div id="page-colors" class="page active">
+    <div class="page-header">
+        <div class="page-sub-title">لیست رنگ‌ها</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn-green" onclick="toggleForm('add-color-form')">
+                <i class="ti ti-plus" aria-hidden="true"></i> افزودن آیتم
+            </button>
+            <button class="btn-blue">
+                <i class="ti ti-filter" aria-hidden="true"></i> فیلتر اطلاعات
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Color Form -->
+    <div id="add-color-form" class="form-card" style="display:none">
+        <div class="form-section-title">
+            افزودن رنگ جدید
+            <span class="dto-label">CreateColorDto</span>
+        </div>
+        <div id="alert-color" class="alert-ok">
+            <i class="ti ti-circle-check" aria-hidden="true"></i> رنگ با موفقیت اضافه شد
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>عنوان (Title)</label>
+                <input id="c-title" placeholder="مثال: آبی آسمانی">
+            </div>
+            <div class="fg">
+                <label>کد رنگ (ColorCode)</label>
+                <div class="color-picker-row">
+                    <input type="text" id="c-code" placeholder="#4ade80">
+                    <input type="color" id="c-picker" value="#4ade80">
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn-green" onclick="saveColor()">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+            </button>
+            <button class="btn-outline" onclick="toggleForm('add-color-form')">انصراف</button>
+        </div>
+    </div>
+
+    <!-- Colors Table -->
+    <div class="tbl-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:44px">#</th>
+                    <th>عنوان</th>
+                    <th style="width:70px">رنگ</th>
+                    <th>کد رنگ</th>
+                    <th style="width:60px">ID</th>
+                    <th style="width:130px">عملیات</th>
+                </tr>
+            </thead>
+            <tbody id="color-tbody">
+                <tr>
+                    <td>۱</td>
+                    <td>مشکی</td>
+                    <td><span class="color-dot" style="background:#000000"></span></td>
+                    <td><span class="mono">#000000</span></td>
+                    <td>۲</td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+                <tr>
+                    <td>۲</td>
+                    <td>سفید</td>
+                    <td><span class="color-dot" style="background:#ffffff"></span></td>
+                    <td><span class="mono">#ffffff</span></td>
+                    <td>۳</td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+                <tr>
+                    <td>۳</td>
+                    <td>آبی</td>
+                    <td><span class="color-dot" style="background:#6366f1"></span></td>
+                    <td><span class="mono">#6366f1</span></td>
+                    <td>۴</td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+                <tr>
+                    <td>۴</td>
+                    <td>سبز</td>
+                    <td><span class="color-dot" style="background:#4ade80"></span></td>
+                    <td><span class="mono">#4ade80</span></td>
+                    <td>۵</td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- ══ PAGE: Brands ══ -->
+<div id="page-brands" class="page">
+    <div class="page-header">
+        <div class="page-sub-title">لیست برند‌ها</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn-green" onclick="toggleForm('add-brand-form')">
+                <i class="ti ti-plus" aria-hidden="true"></i> افزودن آیتم
+            </button>
+            <button class="btn-blue">
+                <i class="ti ti-filter" aria-hidden="true"></i> فیلتر اطلاعات
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Brand Form -->
+    <div id="add-brand-form" class="form-card" style="display:none">
+        <div class="form-section-title">
+            افزودن برند جدید
+            <span class="dto-label">CreateBrandDto</span>
+        </div>
+        <div id="alert-brand" class="alert-ok">
+            <i class="ti ti-circle-check" aria-hidden="true"></i> برند با موفقیت اضافه شد
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>عنوان (Title)</label>
+                <input id="b-title" placeholder="مثال: نایک">
+            </div>
+            <div class="fg">
+                <label>URL</label>
+                <input id="b-url" placeholder="مثال: nike">
+            </div>
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>ترتیب نمایش (Order)</label>
+                <input id="b-order" type="number" placeholder="1">
+            </div>
+            <div class="fg">
+                <label>تصویر برند (ImageName)</label>
+                <div class="file-zone" onclick="document.getElementById('b-img').click()">
+                    <i class="ti ti-upload" aria-hidden="true"></i>
+                    انتخاب تصویر
+                    <input type="file" id="b-img" accept="image/*" style="display:none"
+                        onchange="previewImg(this,'b-preview')">
+                </div>
+                <img id="b-preview" class="img-preview" alt="پیش‌نمایش برند">
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn-green" onclick="saveBrand()">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+            </button>
+            <button class="btn-outline" onclick="toggleForm('add-brand-form')">انصراف</button>
+        </div>
+    </div>
+
+    <!-- Brands Table -->
+    <div class="tbl-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:44px">#</th>
+                    <th style="width:70px">تصویر</th>
+                    <th>عنوان</th>
+                    <th>URL</th>
+                    <th style="width:100px">ترتیب نمایش</th>
+                    <th style="width:60px">ID</th>
+                    <th style="width:130px">عملیات</th>
+                </tr>
+            </thead>
+            <tbody id="brand-tbody">
+                <tr>
+                    <td>۱</td>
+                    <td>
+                        <div class="img-thumb" style="background:#000;color:#fff;font-size:9px;font-weight:600">ZARA
+                        </div>
+                    </td>
+                    <td>زارا</td>
+                    <td><span class="txt-link mono">zara</span></td>
+                    <td style="text-align:center">۱</td>
+                    <td>۱</td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+                <tr>
+                    <td>۲</td>
+                    <td>
+                        <div class="img-thumb" style="background:#1e293b;color:#fff;font-size:9px;font-weight:600">H&M
+                        </div>
+                    </td>
+                    <td>اچ اند ام</td>
+                    <td><span class="txt-link mono">h-and-m</span></td>
+                    <td style="text-align:center">۲</td>
+                    <td>۲</td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- ══ PAGE: Categories ══ -->
+<div id="page-categories" class="page">
+    <div class="page-header">
+        <div class="page-sub-title">لیست دسته‌بندی‌ها</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn-green" onclick="toggleForm('add-cat-form')">
+                <i class="ti ti-plus" aria-hidden="true"></i> افزودن آیتم
+            </button>
+            <button class="btn-blue">
+                <i class="ti ti-filter" aria-hidden="true"></i> فیلتر اطلاعات
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Category Form -->
+    <div id="add-cat-form" class="form-card" style="display:none">
+        <div class="form-section-title">
+            افزودن دسته‌بندی جدید
+            <span class="dto-label">CreateCategoryDto</span>
+        </div>
+        <div id="alert-cat" class="alert-ok">
+            <i class="ti ti-circle-check" aria-hidden="true"></i> دسته‌بندی با موفقیت اضافه شد
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>عنوان (Title)</label>
+                <input id="cat-title" placeholder="مثال: پیراهن مردانه">
+            </div>
+            <div class="fg">
+                <label>URL</label>
+                <input id="cat-url" placeholder="مثال: men-shirt">
+            </div>
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>دسته والد (ParentId)</label>
+                <select id="cat-parent">
+                    <option value="">بدون والد — دسته اصلی</option>
+                    <option value="1">پوشاک مردانه</option>
+                    <option value="2">پوشاک زنانه</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>ترتیب نمایش (Order)</label>
+                <input id="cat-order" type="number" placeholder="1">
+            </div>
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>نمایش در صفحه اصلی (ShowInHome)</label>
+                <div class="toggle-wrap">
+                    <div class="toggle on" id="tog-home"></div>
+                    <span id="tog-home-label">بله</span>
+                </div>
+            </div>
+            <div class="fg">
+                <label>تصویر اصلی (MainImage)</label>
+                <div class="file-zone" onclick="document.getElementById('cat-img').click()">
+                    <i class="ti ti-upload" aria-hidden="true"></i>
+                    انتخاب تصویر
+                    <input type="file" id="cat-img" accept="image/*" style="display:none"
+                        onchange="previewImg(this,'cat-preview')">
+                </div>
+                <img id="cat-preview" class="img-preview" alt="پیش‌نمایش دسته">
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn-green" onclick="saveCat()">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+            </button>
+            <button class="btn-outline" onclick="toggleForm('add-cat-form')">انصراف</button>
+        </div>
+    </div>
+
+    <!-- Categories Table -->
+    <div class="tbl-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:44px">#</th>
+                    <th>عنوان</th>
+                    <th>URL</th>
+                    <th style="width:110px">والد</th>
+                    <th style="width:70px">ترتیب</th>
+                    <th style="width:90px">صفحه اصلی</th>
+                    <th style="width:130px">عملیات</th>
+                </tr>
+            </thead>
+            <tbody id="cat-tbody">
+                <tr>
+                    <td>۱</td>
+                    <td>پوشاک مردانه</td>
+                    <td><span class="txt-link mono">men</span></td>
+                    <td style="color:var(--text-muted)">—</td>
+                    <td style="text-align:center">۱</td>
+                    <td style="text-align:center"><i class="ti ti-circle-check icon-ok" aria-label="بله"></i></td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+                <tr>
+                    <td>۲</td>
+                    <td>پیراهن مردانه</td>
+                    <td><span class="txt-link mono">men-shirt</span></td>
+                    <td>پوشاک مردانه</td>
+                    <td style="text-align:center">۱</td>
+                    <td style="text-align:center"><i class="ti ti-x icon-no" aria-label="خیر"></i></td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+                <tr>
+                    <td>۳</td>
+                    <td>پوشاک زنانه</td>
+                    <td><span class="txt-link mono">women</span></td>
+                    <td style="color:var(--text-muted)">—</td>
+                    <td style="text-align:center">۲</td>
+                    <td style="text-align:center"><i class="ti ti-circle-check icon-ok" aria-label="بله"></i></td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- ══ PAGE: Products ══ -->
+<div id="page-products" class="page">
+    <div class="page-header">
+        <div class="page-sub-title">لیست محصولات</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn-green" onclick="toggleForm('add-product-form')">
+                <i class="ti ti-plus" aria-hidden="true"></i> افزودن محصول
+            </button>
+            <button class="btn-blue">
+                <i class="ti ti-filter" aria-hidden="true"></i> فیلتر اطلاعات
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Product Form -->
+    <div id="add-product-form" class="form-card" style="display:none">
+        <div class="form-section-title">
+            افزودن محصول جدید
+            <span class="dto-label">CreateProductDto</span>
+        </div>
+        <div id="alert-product" class="alert-ok">
+            <i class="ti ti-circle-check" aria-hidden="true"></i> محصول با موفقیت اضافه شد
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>عنوان محصول (Title)</label>
+                <input id="p-title" placeholder="مثال: پیراهن اسلیم‌فیت مردانه">
+            </div>
+            <div class="fg">
+                <label>برند (BrandId)</label>
+                <select id="p-brand">
+                    <option value="">انتخاب برند...</option>
+                    <option value="1">زارا</option>
+                    <option value="2">اچ اند ام</option>
+                </select>
+            </div>
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>قیمت پایه — تومان (BasePrice)</label>
+                <input id="p-price" type="number" placeholder="مثال: 450000">
+            </div>
+            <div class="fg">
+                <label>دسته‌بندی‌ها (Categories)</label>
+                <select id="p-cat" multiple style="height:64px">
+                    <option value="1">پوشاک مردانه</option>
+                    <option value="2">پیراهن مردانه</option>
+                    <option value="3">پوشاک زنانه</option>
+                </select>
+                <div class="hint">Ctrl + کلیک برای انتخاب چندتایی</div>
+            </div>
+        </div>
+        <div class="fg">
+            <label>توضیح کوتاه (ShortDescription)</label>
+            <input id="p-short" placeholder="یک جمله توضیح کوتاه...">
+        </div>
+        <div class="fg">
+            <label>توضیحات کامل (Description)</label>
+            <textarea id="p-desc" rows="2" placeholder="توضیحات کامل محصول..."></textarea>
+        </div>
+        <div class="two">
+            <div class="fg">
+                <label>تصویر اصلی (MainImage)</label>
+                <div class="file-zone" onclick="document.getElementById('p-img').click()">
+                    <i class="ti ti-photo" aria-hidden="true"></i>
+                    انتخاب تصویر اصلی
+                    <input type="file" id="p-img" accept="image/*" style="display:none"
+                        onchange="previewImg(this,'p-preview')">
+                </div>
+                <img id="p-preview" class="img-preview" alt="پیش‌نمایش محصول">
+            </div>
+            <div class="fg">
+                <label>گالری تصاویر (ProductGalleries)</label>
+                <div class="file-zone" onclick="document.getElementById('p-gallery').click()">
+                    <i class="ti ti-layout-grid" aria-hidden="true"></i>
+                    انتخاب چند تصویر
+                    <input type="file" id="p-gallery" accept="image/*" multiple style="display:none">
+                </div>
+            </div>
+        </div>
+        <div class="fg">
+            <label>وضعیت موجودی (IsAvailable)</label>
+            <div class="toggle-wrap">
+                <div class="toggle on" id="tog-avail"></div>
+                <span id="tog-avail-label">موجود در انبار</span>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn-green" onclick="saveProduct()">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره محصول
+            </button>
+            <button class="btn-outline" onclick="toggleForm('add-product-form')">انصراف</button>
+        </div>
+    </div>
+
+    <!-- Products Table -->
+    <div class="tbl-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:44px">#</th>
+                    <th style="width:66px">تصویر</th>
+                    <th>عنوان</th>
+                    <th style="width:100px">دسته‌بندی</th>
+                    <th style="width:110px">قیمت</th>
+                    <th style="width:80px">موجودی</th>
+                    <th style="width:54px">ID</th>
+                    <th style="width:130px">عملیات</th>
+                </tr>
+            </thead>
+            <tbody id="product-tbody">
+                <tr>
+                    <td>۱</td>
+                    <td>
+                        <div class="img-thumb"><i class="ti ti-shirt" style="color:var(--text-muted);font-size:18px"
+                                aria-hidden="true"></i>
+                        </div>
+                    </td>
+                    <td><span class="txt-link">پیراهن اسلیم‌فیت آبی مردانه</span></td>
+                    <td>پیراهن مردانه</td>
+                    <td><span style="font-size:12px">۴۵۰٬۰۰۰ تومان</span></td>
+                    <td style="text-align:center">۲۸</td>
+                    <td>۱</td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+                <tr>
+                    <td>۲</td>
+                    <td>
+                        <div class="img-thumb"><i class="ti ti-shirt" style="color:var(--text-muted);font-size:18px"
+                                aria-hidden="true"></i>
+                        </div>
+                    </td>
+                    <td><span class="txt-link">شلوار کتان زنانه کرم</span></td>
+                    <td>پوشاک زنانه</td>
+                    <td><span style="font-size:12px">۳۸۰٬۰۰۰ تومان</span></td>
+                    <td style="text-align:center">۱۵</td>
+                    <td>۲</td>
+                    <td><button class="badge-edit">ویرایش</button> <button class="badge-del"
+                            onclick="delRow(this)">حذف</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- ══ PAGE: Users ══ -->
+<div id="page-users" class="page">
+    <div class="page-header">
+        <div class="page-sub-title">لیست کاربران</div>
+        <button class="btn-blue">
+            <i class="ti ti-filter" aria-hidden="true"></i> فیلتر اطلاعات
+        </button>
+    </div>
+    <div class="tbl-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:44px">#</th>
+                    <th>نام و نام خانوادگی</th>
+                    <th style="width:120px">شماره موبایل</th>
+                    <th style="width:130px">استان / شهر</th>
+                    <th style="width:80px">بلاک شده</th>
+                    <th style="width:110px">تاریخ عضویت</th>
+                    <th style="width:90px">شناسه کاربری</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>۱</td>
+                    <td><span class="txt-link">رضا احمدی</span></td>
+                    <td>۰۹۱۲۳۴۵۶۷۸۹</td>
+                    <td>مازندران / ساری</td>
+                    <td style="text-align:center"><i class="ti ti-x icon-no" aria-label="خیر"></i></td>
+                    <td>۱۴۰۴/۰۱/۰۳</td>
+                    <td>۱</td>
+                </tr>
+                <tr>
+                    <td>۲</td>
+                    <td><span class="txt-link">نیلوفر کریمی</span></td>
+                    <td>۰۹۳۵۶۷۸۹۰۱۲</td>
+                    <td>تهران / تهران</td>
+                    <td style="text-align:center"><i class="ti ti-x icon-no" aria-label="خیر"></i></td>
+                    <td>۱۴۰۴/۰۲/۱۰</td>
+                    <td>۱۰۰۰۴</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- ══ PAGE: Home / Dashboard ══ -->
+<div id="page-home" class="page">
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="color:#2563eb"><i class="ti ti-shirt" aria-hidden="true"></i>
+            </div>
+            <div class="stat-label">کل محصولات</div>
+            <div class="stat-value" style="color:#0f172a">۱۲۸</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="color:#16a34a"><i class="ti ti-shopping-cart" aria-hidden="true"></i></div>
+            <div class="stat-label">سفارشات امروز</div>
+            <div class="stat-value" style="color:#16a34a">۱۴</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="color:#7c3aed"><i class="ti ti-users" aria-hidden="true"></i>
+            </div>
+            <div class="stat-label">کل کاربران</div>
+            <div class="stat-value" style="color:#7c3aed">۳۴۲</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="color:#b45309"><i class="ti ti-building-store" aria-hidden="true"></i></div>
+            <div class="stat-label">برند‌های ثبت‌شده</div>
+            <div class="stat-value" style="color:#b45309">۸</div>
+        </div>
+    </div>
+    <div class="tbl-wrap" style="padding:2rem;text-align:center;color:var(--text-muted)">
+        <i class="ti ti-layout-dashboard" style="font-size:36px;display:block;margin-bottom:10px;color:#e2e8f0"
+            aria-hidden="true"></i>
+        از منوی سمت راست بخش مورد نظر را انتخاب کنید
+    </div>
+</div> *@

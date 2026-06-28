@@ -1,0 +1,450 @@
+@using Application.Extensions
+@using Data.DTOs.Product
+@using Data.Entities
+@model Data.DTOs.Product.ProductDetailDto
+@{
+    ViewData["Title"] = "جزئیات محصول — " + Model.Title;
+}
+
+<div class="page-header">
+    <div class="page-sub-title">جزئیات محصول</div>
+    <div style="display:flex;gap:8px">
+        <a asp-action="EditProduct"
+           asp-route-productId="@Model.Id"
+           class="btn-green">
+            <i class="ti ti-edit" aria-hidden="true"></i> ویرایش محصول
+        </a>
+        <a asp-action="FilterProduct" class="btn-blue">
+            <i class="ti ti-arrow-right" aria-hidden="true"></i> بازگشت به لیست
+        </a>
+    </div>
+</div>
+
+@* ─── اطلاعات کلی ─── *@
+<div class="form-card" style="margin-bottom:1rem">
+    <div style="display:flex;gap:1.5rem;align-items:flex-start">
+
+        @* تصویر اصلی *@
+        <div style="flex-shrink:0">
+            <div class="img-thumb" style="width:110px;height:110px;border-radius:10px">
+                <img src="@(PathExtension.ProductImageImage + Model.MainImageName)"
+                     alt="@Model.Title"
+                     style="width:100%;height:100%;object-fit:cover;border-radius:10px">
+            </div>
+        </div>
+
+        @* اطلاعات متنی *@
+        <div style="flex:1">
+            <div style="font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:6px">
+                @Model.Title
+            </div>
+
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+                <span style="font-size:12px;color:var(--text-muted)">
+                    شناسه: <strong style="color:var(--text-secondary)">@Model.Id</strong>
+                </span>
+                <span style="font-size:12px;color:var(--text-muted)">
+                    قیمت: <strong style="color:var(--text-secondary)">
+                        @Model.Price.ToString("N0") تومان
+                    </strong>
+                </span>
+                <span style="font-size:12px;color:var(--text-muted)">
+                    وضعیت:
+                    @if (Model.IsAvailable)
+                    {
+                        <span style="color:#16a34a;font-weight:500">موجود</span>
+                    }
+                    else
+                    {
+                        <span style="color:#dc2626;font-weight:500">ناموجود</span>
+                    }
+                </span>
+                @if (Model.ProductSelectedBrand != null)
+                {
+                    <span style="font-size:12px;color:var(--text-muted)">
+                        برند: <strong style="color:var(--text-secondary)">
+                            @Model.ProductSelectedBrand.Title
+                        </strong>
+                    </span>
+                }
+            </div>
+
+            @* دسته‌بندی‌ها *@
+            @if (Model.SelectedCategories != null && Model.SelectedCategories.Any())
+            {
+                <div style="display:flex;flex-wrap:wrap;gap:5px">
+                    @foreach (var sc in Model.SelectedCategories)
+                    {
+                        <span class="dto-label">@sc.Category?.Title</span>
+                    }
+                </div>
+            }
+
+            <div style="margin-top:10px;font-size:11px;color:var(--text-muted)">
+                ایجاد: @Model.CreateDate.ToString("yyyy/MM/dd HH:mm") —
+                آخرین ویرایش: @Model.LastUpdateDate.ToString("yyyy/MM/dd HH:mm")
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ─── تب‌ها ─── *@
+<div class="form-card" style="padding:0;overflow:hidden">
+
+    @* Tab Headers *@
+    <div style="display:flex;border-bottom:1px solid var(--border)">
+        @{
+            var tabs = new[] {
+                ("variants",  "ti-layers",      "موجودی"),
+                ("features",  "ti-list-details", "ویژگی‌ها"),
+                ("gallery",   "ti-photo",        "گالری"),
+                ("desc",      "ti-file-text",    "توضیحات"),
+            };
+        }
+        @foreach (var (id, icon, label) in tabs)
+        {
+            <button type="button"
+                    onclick="switchTab('@id')"
+                    id="tab-btn-@id"
+                    style="padding:12px 18px;font-size:13px;font-family:var(--font-main);
+                           border:none;background:transparent;cursor:pointer;
+                           color:var(--text-muted);display:flex;align-items:center;gap:6px;
+                           border-bottom:2px solid transparent">
+                <i class="ti @icon" aria-hidden="true"></i> @label
+            </button>
+        }
+    </div>
+
+    @* Tab Contents *@
+    <div style="padding:1.25rem">
+
+        @* ══ موجودی (Variants) ══ *@
+        <div id="tab-variants" class="tab-pane">
+            <div style="margin-bottom:10px">
+                <a asp-action="CreateVariant"
+                   asp-route-productId="@Model.Id"
+                   class="btn-green" style="font-size:12px">
+                    <i class="ti ti-plus" aria-hidden="true"></i> افزودن موجودی
+                </a>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:44px">#</th>
+                            <th>رنگ</th>
+                            <th style="width:130px">قیمت</th>
+                            <th style="width:100px">موجودی</th>
+                            <th style="width:130px">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.ProductVariants != null && Model.ProductVariants.Any())
+                        {
+                            int vi = 1;
+                            @foreach (var v in Model.ProductVariants.OrderByDescending(x => x.StockCount))
+                            {
+                                <tr>
+                                    <td>@(vi++)</td>
+                                    <td>
+                                        <div style="display:flex;align-items:center;gap:7px">
+                                            <span class="color-dot"
+                                                  style="background:@v.ColorCode"></span>
+                                            @v.ColorTitle
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (@Model.Price > 0)
+                                        {
+                                            <span>@((Model.Price).ToString("N0")) تومان</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="color:var(--text-muted)">قیمت پایه</span>
+                                        }
+                                    </td>
+                                    <td style="text-align:center">
+                                        @v.StockCount.ToString("N0")
+                                    </td>
+                                    <td>
+                                        <a asp-action="EditVariant"
+                                           asp-route-productId="@Model.Id"
+                                           asp-route-variantId="@v.Id"
+                                           class="badge-edit">ویرایش</a>
+                                        <button type="button" class="badge-del"
+                                                onclick="confirmDeleteVariant(@v.Id, '@v.ColorTitle')">
+                                            حذف
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" style="text-align:center;color:var(--text-muted);padding:1.5rem">
+                                    موجودی تعریف نشده
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* ══ ویژگی‌ها (Features) ══ *@
+        <div id="tab-features" class="tab-pane" style="display:none">
+            <div style="margin-bottom:10px">
+                <a asp-action="CreateFeature"
+                   asp-route-productId="@Model.Id"
+                   class="btn-green" style="font-size:12px">
+                    <i class="ti ti-plus" aria-hidden="true"></i> افزودن ویژگی
+                </a>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:60px">ترتیب</th>
+                            <th>عنوان</th>
+                            <th>مقدار</th>
+                            <th style="width:130px">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.ProductFeatures != null && Model.ProductFeatures.Any())
+                        {
+                            @foreach (var f in Model.ProductFeatures.OrderBy(x => x.Order))
+                            {
+                                <tr>
+                                    <td style="text-align:center">@f.Order</td>
+                                    <td>@f.Title</td>
+                                    <td>@f.Value</td>
+                                    <td>
+                                        <button type="button" class="badge-edit"
+                                                onclick="openEditFeature(@f.Id, '@f.Title', '@f.Value', @f.Order)">
+                                            ویرایش
+                                        </button>
+                                        <button type="button" class="badge-del"
+                                                onclick="confirmDeleteFeature(@f.Id)">
+                                            حذف
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem">
+                                    ویژگی تعریف نشده
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* ══ گالری ══ *@
+        <div id="tab-gallery" class="tab-pane" style="display:none">
+            <div style="margin-bottom:10px">
+                <button type="button" class="btn-green" style="font-size:12px"
+                        onclick="toggleForm('create-gallery-form')">
+                    <i class="ti ti-plus" aria-hidden="true"></i> افزودن تصویر گالری
+                </button>
+            </div>
+
+            @* فرم افزودن تصویر گالری *@
+            <div id="create-gallery-form" class="form-card"
+                 style="display:none;margin-bottom:1rem;background:#fafbfc">
+                <form asp-action="CreateGallery" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="ProductId" value="@Model.Id">
+                    <div class="two">
+                        <div class="fg">
+                            <label>تصویر</label>
+                            <div class="file-zone"
+                                 onclick="document.getElementById('gallery-new-img').click()">
+                                <i class="ti ti-upload" aria-hidden="true"></i>
+                                انتخاب تصویر
+                                <input type="file" name="ImageName" id="gallery-new-img"
+                                       accept="image/*" style="display:none"
+                                       onchange="previewImg(this,'gallery-new-preview')">
+                            </div>
+                            <img id="gallery-new-preview" class="img-preview" alt="">
+                        </div>
+                        <div class="fg">
+                            <label>ترتیب نمایش</label>
+                            <input type="number" name="Order"
+                                   value="@((Model.ProductGalleries?.Count ?? 0) + 1)">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-green">
+                            <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+                        </button>
+                        <button type="button" class="btn-outline"
+                                onclick="toggleForm('create-gallery-form')">انصراف</button>
+                    </div>
+                </form>
+            </div>
+
+            @* لیست تصاویر *@
+            @if (Model.ProductGalleries != null && Model.ProductGalleries.Any())
+            {
+                <div style="display:flex;flex-wrap:wrap;gap:12px">
+                    @foreach (var g in Model.ProductGalleries.OrderBy(x => x.Order))
+                    {
+                        <div style="position:relative">
+                            <img src="@(PathExtension.ProductGalleryThumb + g.ImageName)"
+                                 alt=""
+                                 style="width:90px;height:90px;object-fit:cover;
+                                        border-radius:8px;border:1px solid var(--border)">
+                            <span style="position:absolute;top:4px;right:4px;
+                                         background:rgba(0,0,0,0.5);color:#fff;
+                                         font-size:10px;font-weight:600;
+                                         width:18px;height:18px;border-radius:50%;
+                                         display:flex;align-items:center;justify-content:center">
+                                @g.Order
+                            </span>
+                            <div style="display:flex;gap:4px;margin-top:5px;justify-content:center">
+                                <button type="button" class="badge-edit"
+                                        onclick="openEditGallery(@g.Id, @g.Order)"
+                                        style="font-size:10px;padding:2px 7px">ویرایش</button>
+                                <button type="button" class="badge-del"
+                                        onclick="confirmDeleteGallery(@g.Id)"
+                                        style="font-size:10px;padding:2px 7px">حذف</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p style="color:var(--text-muted);font-size:13px">تصویری در گالری وجود ندارد</p>
+            }
+        </div>
+
+        @* ══ توضیحات ══ *@
+        <div id="tab-desc" class="tab-pane" style="display:none">
+            <div style="margin-bottom:1rem">
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:6px">
+                    توضیح کوتاه
+                </div>
+                @if (!string.IsNullOrEmpty(Model.ShortDescription))
+                {
+                    <div style="font-size:13px;color:var(--text-secondary);line-height:1.7">
+                        @Html.Raw(Model.ShortDescription)
+                    </div>
+                }
+                else
+                {
+                    <p style="color:var(--text-muted);font-size:13px">توضیح کوتاه وارد نشده</p>
+                }
+            </div>
+            <hr style="border-color:var(--border);margin:1rem 0">
+            <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:6px">
+                    توضیحات کامل
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {
+                    <div style="font-size:13px;color:var(--text-secondary);line-height:1.8">
+                        @Html.Raw(Model.Description)
+                    </div>
+                }
+                else
+                {
+                    <p style="color:var(--text-muted);font-size:13px">توضیحات کامل وارد نشده</p>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section AdminFooterSection {
+    <script>
+        // ─── Tab switch ───
+        const tabIds = ['variants', 'features', 'gallery', 'desc'];
+
+        function switchTab(active) {
+            tabIds.forEach(id => {
+                document.getElementById('tab-' + id).style.display   = id === active ? 'block' : 'none';
+                const btn = document.getElementById('tab-btn-' + id);
+                btn.style.borderBottomColor = id === active ? 'var(--btn-blue)' : 'transparent';
+                btn.style.color             = id === active ? 'var(--btn-blue)' : 'var(--text-muted)';
+                btn.style.fontWeight        = id === active ? '500' : '400';
+            });
+        }
+        // تب اول رو فعال کن
+        switchTab('variants');
+
+        // ─── حذف variant ───
+        function confirmDeleteVariant(id, colorTitle) {
+            Swal.fire({
+                title: 'حذف موجودی',
+                text: `آیا از حذف "${colorTitle}" مطمئن هستید؟`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'بله، حذف شود',
+                cancelButtonText: 'انصراف',
+                confirmButtonColor: '#dc2626',
+                width: '28em'
+            }).then(r => {
+                if (r.isConfirmed)
+                    window.location.href =
+                        `/Admin/Product/DeleteVariant?productId=@Model.Id&variantId=${id}`;
+            });
+        }
+
+        // ─── حذف feature ───
+        function confirmDeleteFeature(id) {
+            Swal.fire({
+                title: 'حذف ویژگی',
+                text: 'آیا از حذف این ویژگی مطمئن هستید؟',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'بله، حذف شود',
+                cancelButtonText: 'انصراف',
+                confirmButtonColor: '#dc2626',
+                width: '28em'
+            }).then(r => {
+                if (r.isConfirmed)
+                    window.location.href =
+                        `/Admin/Product/DeleteFeature?productId=@Model.Id&featureId=${id}`;
+            });
+        }
+
+        // ─── حذف gallery ───
+        function confirmDeleteGallery(id) {
+            Swal.fire({
+                title: 'حذف تصویر',
+                text: 'آیا از حذف این تصویر مطمئن هستید؟',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'بله، حذف شود',
+                cancelButtonText: 'انصراف',
+                confirmButtonColor: '#dc2626',
+                width: '28em'
+            }).then(r => {
+                if (r.isConfirmed)
+                    window.location.href =
+                        `/Admin/Product/DeleteGallery?productId=@Model.Id&galleryId=${id}`;
+            });
+        }
+
+        // ─── ویرایش gallery (inline form) ───
+        function openEditGallery(id, order) {
+            // میتونی یه inline form باز کنی یا redirect کنی
+            window.location.href =
+                `/Admin/Product/EditGallery?productId=@Model.Id&galleryId=${id}`;
+        }
+
+        // ─── ویرایش feature ───
+        function openEditFeature(id, title, value, order) {
+            window.location.href =
+                `/Admin/Product/EditFeature?productId=@Model.Id&featureId=${id}`;
+        }
+    </script>
+}

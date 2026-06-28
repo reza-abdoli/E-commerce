@@ -1,0 +1,60 @@
+@model Data.DTOs.Product.CreateBrandDto
+@{
+    ViewData["Title"] = "افزودن برند";
+}
+
+<div class="page-header">
+    <div class="page-sub-title">@ViewData["Title"]</div>
+    <a asp-action="FilterBrand" class="btn-blue">
+        <i class="ti ti-arrow-right" aria-hidden="true"></i> بازگشت به لیست
+    </a>
+</div>
+
+<div class="form-card" style="max-width:640px">
+    <div class="form-section-title">
+        اطلاعات برند
+        <span class="dto-label">CreateBrandDto</span>
+    </div>
+
+    <form asp-action="CreateBrand" method="post" enctype="multipart/form-data">
+        <div class="two">
+            <div class="fg">
+                <label asp-for="Title">عنوان (Title)</label>
+                <input asp-for="Title" placeholder="مثال: نایک">
+                <span asp-validation-for="Title" class="text-danger" style="font-size:11px"></span>
+            </div>
+            <div class="fg">
+                <label asp-for="Url">آدرس (Url)</label>
+                <input asp-for="Url" placeholder="مثال: nike">
+                <span asp-validation-for="Url" class="text-danger" style="font-size:11px"></span>
+            </div>
+        </div>
+
+        <div class="fg" style="max-width:200px">
+            <label asp-for="Order">ترتیب نمایش (Order)</label>
+            <input asp-for="Order" type="number" placeholder="1">
+        </div>
+
+        <div class="fg">
+            <label asp-for="Image">تصویر برند (Image)</label>
+            <div class="file-zone" onclick="document.getElementById('brand-img').click()">
+                <i class="ti ti-upload" aria-hidden="true"></i>
+                <input asp-for="Image"
+                       type="file"
+                       id="brand-img"
+                       accept="image/*"
+                       style="display:none"
+                       onchange="previewImg(this, 'brand-preview')">
+            </div>
+            <img id="brand-preview" class="img-preview" alt="پیش‌نمایش برند">
+            <span asp-validation-for="Image" class="text-danger" style="font-size:11px"></span>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-green">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+            </button>
+            <a asp-action="FilterBrand" class="btn-outline">انصراف</a>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,108 @@
+@model Data.DTOs.Product.FilterSizeDto
+@{
+    ViewData["Title"] = "مدیریت سایزها";
+}
+
+<div class="page-header">
+    <div class="page-sub-title">لیست سایزها</div>
+    <div style="display:flex;gap:8px">
+        <a asp-action="CreateSize" class="btn-green">
+            <i class="ti ti-plus" aria-hidden="true"></i> افزودن آیتم
+        </a>
+        <button type="button" class="btn-blue" onclick="toggleForm('filter-form')">
+            <i class="ti ti-filter" aria-hidden="true"></i> فیلتر اطلاعات
+        </button>
+    </div>
+</div>
+
+<form asp-action="FilterSize" method="get">
+    <div id="filter-form" class="form-card" style="display:none;margin-bottom:1rem">
+        <div class="form-section-title">فیلتر سایزها</div>
+        <div class="two">
+            <div class="fg">
+                <label>عنوان</label>
+                <input asp-for="Title" placeholder="مثال: XL">
+            </div>
+            <div class="fg">
+                <label>نوع سایز</label>
+                <input asp-for="SizeType" placeholder="مثال: پیراهن مردانه">
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-blue">
+                <i class="ti ti-search"></i> جستجو
+            </button>
+            <a asp-action="FilterSize" class="btn-outline">پاک‌کردن</a>
+        </div>
+    </div>
+</form>
+
+<div class="tbl-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:44px">#</th>
+                <th>عنوان</th>
+                <th>نوع سایز</th>
+                <th style="width:80px">ترتیب</th>
+                <th style="width:60px">ID</th>
+                <th style="width:130px">عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Data != null && Model.Data.Any())
+            {
+                int i = 1;
+                @foreach (var size in Model.Data)
+                {
+                    <tr>
+                        <td>@(i++)</td>
+                        <td><strong>@size.Title</strong></td>
+                        <td>@size.SizeType</td>
+                        <td style="text-align:center">@size.Order</td>
+                        <td>@size.Id</td>
+                        <td>
+                            <button class="badge-edit">ویرایش</button>
+                            <button type="button" class="badge-del"
+                                    onclick="confirmDelete(@size.Id, '@size.Title')">
+                                حذف
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="6"
+                        style="text-align:center;color:var(--text-muted);padding:2rem">
+                        <i class="ti ti-ruler"
+                           style="font-size:24px;display:block;margin-bottom:6px"></i>
+                        سایزی یافت نشد
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section AdminFooterSection {
+    <script>
+        function confirmDelete(id, title) {
+            Swal.fire({
+                title: 'حذف سایز',
+                text: `آیا از حذف "${title}" مطمئن هستید؟`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'بله، حذف شود',
+                cancelButtonText: 'انصراف',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                width: '28em'
+            }).then(result => {
+                if (result.isConfirmed)
+                    window.location.href = `/Admin/Product/DeleteSize?sizeId=${id}`;
+            });
+        }
+    </script>
+}

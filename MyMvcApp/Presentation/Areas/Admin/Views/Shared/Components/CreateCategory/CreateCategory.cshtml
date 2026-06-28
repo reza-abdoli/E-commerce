@@ -1,0 +1,59 @@
+ @model Data.DTOs.TreeViewCategoriesDto
+
+
+@if (Model.productCategories != null && Model.productCategories.Any())
+
+{
+
+    <ul style="list-style:none; padding-right:@(Model.Level * 20)px; margin:0">
+
+        @foreach (var item in Model.productCategories)
+
+        {
+
+            <li style="margin:6px 0">
+
+                <div style="display:flex; align-items:center; gap:8px">
+
+                    @if (Model.Level > 0)
+
+                    {
+
+                        <span style="color:var(--text-muted); font-size:12px">
+
+                            @(new string('─', Model.Level))
+
+                        </span>
+
+                    }
+
+                    <input type="radio"
+
+                           name="ParentId"
+
+                           id="cat-@item.Id"
+
+                           value="@item.Id"
+                           
+                           style="width:auto; flex-shrink:0">
+
+                    <label for="cat-@item.Id" style="cursor:pointer; margin:0">
+
+                        @item.Title
+
+                    </label>
+
+                </div>
+
+
+                @await Component.InvokeAsync("CreateCategory",
+
+                    new { thisId = item.Id, level = Model.Level + 1 })
+
+            </li>
+
+        }
+
+    </ul>
+
+} 

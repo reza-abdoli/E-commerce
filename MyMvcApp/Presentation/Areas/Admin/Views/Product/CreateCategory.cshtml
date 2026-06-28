@@ -1,0 +1,189 @@
+@using Data.Entities
+
+@model Data.DTOs.Category.CreateCategoryDto
+
+@{
+
+    ViewData["Title"] = "افزودن دسته‌بندی";
+
+    @* var parentCategories = (List<ProductCategory>) ViewData["ParentCategory"]; *@
+
+}
+
+
+<div class="page-header">
+
+    <div class="page-sub-title">@ViewData["Title"]</div>
+
+    <a asp-action="FilterCategory" class="btn-blue">
+
+        <i class="ti ti-arrow-right" aria-hidden="true"></i> بازگشت به لیست
+
+    </a>
+
+</div>
+
+
+<div class="form-card" style="max-width:700px">
+
+    <div class="form-section-title">
+
+        اطلاعات دسته‌بندی
+
+        <span class="dto-label">CreateCategoryDto</span>
+
+    </div>
+
+
+    <form asp-action="CreateCategory" method="post" enctype="multipart/form-data">
+
+
+        <div class="two">
+
+            <div class="fg">
+
+                <label asp-for="Title">عنوان (Title)</label>
+
+                <input asp-for="Title" placeholder="مثال: پیراهن مردانه">
+
+                <span asp-validation-for="Title" class="text-danger"></span>
+
+            </div>
+
+            <div class="fg">
+
+                <label asp-for="Url">آدرس (Url)</label>
+
+                <input asp-for="Url" placeholder="مثال: men-shirt">
+
+                <span asp-validation-for="Url" class="text-danger"></span>
+
+            </div>
+
+        </div>
+
+
+        <div class="two">
+
+            <div class="fg">
+
+                <label asp-for="Order">ترتیب نمایش (Order)</label>
+
+                <input asp-for="Order" type="number" placeholder="1">
+
+                <span asp-validation-for="Order" class="text-danger"></span>
+
+            </div>
+
+            <div class="fg">
+
+                <label asp-for="ShowInHome">نمایش در صفحه اصلی</label>
+
+                <div class="toggle-wrap" style="margin-top:8px">
+
+                    <input type="hidden" asp-for="ShowInHome" id="showInHome-val">
+
+                    <div class="toggle on" id="tog-show"></div>
+
+                    <span id="tog-show-label">بله</span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="fg">
+
+            <label asp-for="MainImage">تصویر اصلی (MainImage)</label>
+
+            <div class="file-zone" onclick="document.getElementById('cat-img').click()">
+
+                <i class="ti ti-upload" aria-hidden="true"></i>
+
+                انتخاب تصویر
+
+                <input asp-for="MainImage" type="file" id="cat-img" accept="image/*" style="display:none"
+                       onchange="previewImg(this, 'cat-preview')">
+
+            </div>
+
+            <img id="cat-preview" class="img-preview" alt="پیش‌نمایش">
+
+            <span asp-validation-for="MainImage" class="text-danger"></span>
+
+        </div>
+
+
+        <div class="fg">
+
+            <label>دسته والد (ParentId)</label>
+
+            <div
+                style="border:1px solid var(--border); border-radius:8px; padding:12px; max-height:220px; overflow-y:auto; background:var(--surface)">
+
+                <div style="margin-bottom:8px; display:flex; align-items:center; gap:8px">
+
+                    <input type="radio" name="ParentId" id="cat-null" value="" checked style="width:auto">
+
+                    <label for="cat-null" style="cursor:pointer; margin:0">— بدون والد (دسته اصلی) —</label>
+
+                </div>
+
+                @await Component.InvokeAsync("CreateCategory", new { thisId = (long?)null, level = 0 })
+
+            </div>
+
+        </div>
+
+
+        <div class="form-actions">
+
+            <button type="submit" class="btn-green">
+
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+
+            </button>
+
+            <a asp-action="FilterCategory" class="btn-outline">انصراف</a>
+
+        </div>
+
+
+    </form>
+
+</div>
+
+
+@section AdminFooterSection {
+
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+
+        const tog = document.getElementById('tog-show');
+
+        const lbl = document.getElementById('tog-show-label');
+
+        const val = document.getElementById('showInHome-val');
+
+
+        val.value = 'true';
+
+
+        tog.addEventListener('click', () => {
+
+            tog.classList.toggle('on');
+
+            const isOn = tog.classList.contains('on');
+
+            lbl.textContent = isOn ? 'بله' : 'خیر';
+
+            val.value = isOn ? 'true' : 'false';
+
+        });
+
+    </script>
+
+}

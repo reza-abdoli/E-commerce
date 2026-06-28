@@ -1,0 +1,52 @@
+@model Data.DTOs.Product.CreateSizeDto
+@{
+    ViewData["Title"] = "افزودن سایز";
+}
+
+<div class="page-header">
+    <div class="page-sub-title">افزودن سایز جدید</div>
+    <a asp-action="FilterSize" class="btn-blue">
+        <i class="ti ti-arrow-right" aria-hidden="true"></i> بازگشت به لیست
+    </a>
+</div>
+
+<div class="form-card" style="max-width:600px">
+    <div class="form-section-title">
+        اطلاعات سایز
+        <span class="dto-label">CreateProductSizeDto</span>
+    </div>
+
+    <form asp-action="CreateSize" method="post">
+
+        <div class="two">
+            <div class="fg">
+                <label asp-for="Title">عنوان سایز (Title)</label>
+                <input asp-for="Title" placeholder="مثال: XL">
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            <div class="fg">
+                <label asp-for="SizeType">نوع سایز (SizeType)</label>
+                <input asp-for="SizeType" placeholder="مثال: لباس ">
+                <span asp-validation-for="SizeType" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="fg" style="max-width:200px">
+            <label asp-for="Order">ترتیب نمایش (Order)</label>
+            <input asp-for="Order" type="number" placeholder="1">
+            <span asp-validation-for="Order" class="text-danger"></span>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-green">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+            </button>
+            <a asp-action="FilterSize" class="btn-outline">انصراف</a>
+        </div>
+
+    </form>
+</div>
+
+@section AdminFooterSection {
+    <partial name="_ValidationScriptsPartial" />
+}

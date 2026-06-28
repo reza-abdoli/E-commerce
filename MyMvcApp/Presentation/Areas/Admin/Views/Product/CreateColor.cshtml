@@ -1,0 +1,63 @@
+@* Views/Admin/Product/CreateColor.cshtml *@
+@model Data.DTOs.Product.CreateColorDTo
+@{
+    ViewData["Title"] = "افزودن رنگ";
+}
+
+<div class="page-header">
+    <div class="page-sub-title">افزودن رنگ جدید</div>
+    <a asp-action="FilterColor" class="btn-blue">
+        <i class="ti ti-arrow-right" aria-hidden="true"></i> بازگشت به لیست
+    </a>
+</div>
+
+<div class="form-card" style="max-width: 600px;">
+    <div class="form-section-title">
+        اطلاعات رنگ
+        <span class="dto-label">CreateColorDto</span>
+    </div>
+
+    <form asp-action="CreateColor" asp-controller="Product" asp-area="" asp-antiforgery="true" method="post">
+
+        <div class="two">
+            <div class="fg">
+                <label asp-for="Title">عنوان (Title)</label>
+                <input asp-for="Title" class="form-control" placeholder="مثال: آبی آسمانی">
+                <span asp-validation-for="Title" class="text-danger" style="font-size:11px"></span>
+            </div>
+
+            <div class="fg">
+                <label asp-for="ColorCode">کد رنگ (ColorCode)</label>
+                <div class="color-picker-row">
+                    <input asp-for="ColorCode" type="text" placeholder="#4ade80" id="c-code">
+                    <input type="color" id="c-picker" value="#4ade80">
+                </div>
+                <span asp-validation-for="ColorCode" class="text-danger" style="font-size:11px"></span>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-green">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+            </button>
+            <a asp-action="FilterColor" class="btn-outline">انصراف</a>
+        </div>
+
+    </form>
+</div>
+
+@section AdminFooterSection {
+    <script>
+        const picker = document.getElementById('c-picker');
+        const code   = document.getElementById('c-code');
+
+        picker.addEventListener('input', () => code.value = picker.value);
+        code.addEventListener('input', () => {
+            if (/^#[0-9a-f]{6}$/i.test(code.value)) picker.value = code.value;
+        });
+
+        if (code.value && /^#[0-9a-f]{6}$/i.test(code.value)) {
+            picker.value = code.value;
+        }
+    </script>
+}
