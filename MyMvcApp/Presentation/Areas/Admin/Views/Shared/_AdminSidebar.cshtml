@@ -6,6 +6,7 @@
         <i class="ti ti-diamond" aria-hidden="true"></i>
         ESHOP
     </div>
+
     <div class="sb-section">
         <div class="sb-label">منو</div>
         <a asp-area="Admin" asp-controller="Home" asp-action="Index"
@@ -21,6 +22,7 @@
             <i class="ti ti-shopping-cart" aria-hidden="true"></i> سفارشات
         </a>
     </div>
+
     <div class="sb-section">
         <div class="nav-group-header" onclick="toggleGroup('g-product')">
             <span class="group-label">
@@ -46,11 +48,27 @@
                 <i class="ti ti-palette" aria-hidden="true"></i> رنگ‌ها
             </a>
             <a asp-area="Admin" asp-controller="Product" asp-action="FilterSize"
-               class="sb-item @(controller == "FilterSize" || controller == "CreateSize" ? "active" : "")">
+               class="sb-item @(controller is "FilterSize" or "CreateSize" ? "active" : "")">
                 <i class="ti ti-ruler" aria-hidden="true"></i> سایزها
             </a>
         </div>
     </div>
+
+    <div class="sb-section">
+        <div class="nav-group-header" onclick="toggleGroup('g-common')">
+            <span class="group-label">
+                <i class="ti ti-layout" aria-hidden="true"></i> مدیریت سایت
+            </span>
+            <i class="ti ti-chevron-down open" id="chev-g-common" aria-hidden="true"></i>
+        </div>
+        <div id="g-common" class="sb-sub">
+            <a asp-area="Admin" asp-controller="Common" asp-action="BannersList"
+               class="sb-item @(controller is "BannersList" or "CreateBanner" ? "active" : "")">
+                <i class="ti ti-photo" aria-hidden="true"></i> بنرها
+            </a>
+        </div>
+    </div>
+
     <div class="sb-section">
         <div class="nav-group-header" onclick="toggleGroup('g-users')">
             <span class="group-label">
@@ -66,10 +84,11 @@
         </div>
     </div>
 
-    <div class="sb-section">
-    <a asp-area="" asp-controller="Account" asp-action="Logout"
-       class="sb-item">
-        <i class="ti ti-login" aria-hidden="true"></i> خروج
-    </a>
-</div>
+    <div class="sb-section" style="margin-top:auto">
+        <a asp-area="" asp-controller="Account" asp-action="Logout"
+           class="sb-item" style="color:#ef4444">
+            <i class="ti ti-logout" aria-hidden="true"></i> خروج
+        </a>
+    </div>
+
 </aside>

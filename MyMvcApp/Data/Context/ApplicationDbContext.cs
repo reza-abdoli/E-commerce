@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Data.Entities;
+using Data.Entities.Common;
 using Data.Entities.User;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,6 +26,8 @@ namespace Data.Context
         public DbSet<ProductSize> ProductSize { get; set; }
         public DbSet<ProductVariant> ProductVariant { get; set; }
 
+        public DbSet<Banner> Banners { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,11 +38,11 @@ namespace Data.Context
             foreach (var fk in cascadeFKs)
                 fk.DeleteBehavior = DeleteBehavior.Restrict;
 
-        modelBuilder.Entity<Product>()
-            .HasOne(p => p.Brand)
-            .WithMany(b => b.Products)
-            .HasForeignKey(p => p.BrandId)
-            .IsRequired(false);
+            modelBuilder.Entity<Product>()
+                .HasOne(p => p.Brand)
+                .WithMany(b => b.Products)
+                .HasForeignKey(p => p.BrandId)
+                .IsRequired(false);
 
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
@@ -52,6 +55,7 @@ namespace Data.Context
             modelBuilder.Entity<ProductSelectedCategory>().HasQueryFilter(psc => !psc.IsDeleted);
             modelBuilder.Entity<ProductSize>().HasQueryFilter(ps => !ps.IsDeleted);
             modelBuilder.Entity<ProductVariant>().HasQueryFilter(pv => !pv.IsDeleted);
+            modelBuilder.Entity<Banner>().HasQueryFilter(pv => !pv.IsDeleted);
 
 
         }

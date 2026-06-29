@@ -42,7 +42,7 @@ public interface IProductService : IAsyncDisposable
     Task CreateProductVariant(CreateProductVariantDto dto);
 
     Task CreateProductFeature(CreateProductFeatureDto dto);
-
+    Task<List<ProductItemDto>> GetNewestProducts();
 
     #endregion
 }

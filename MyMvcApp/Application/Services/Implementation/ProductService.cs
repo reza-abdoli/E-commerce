@@ -9,6 +9,7 @@ using Data.DTOs.Product;
 using Data.Entities;
 using Data.Repository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Application.Services.Implementation;
 
@@ -24,9 +25,11 @@ public class ProductService : IProductService
     private readonly IRepository<ProductSize> _productSizeRepository;
     private readonly IRepository<ProductVariant> _productVariantRepository;
     private readonly ICategoryService _categoryService;
+    private readonly IMemoryCache _cache;
 
 
-    public ProductService(IRepository<Brand> brandRepository, IRepository<Product> productRepository, IRepository<ProductCategory> productCategoryRepository, IRepository<ProductColor> productColorRepository, IRepository<ProductFeature> productFeatureRepository, IRepository<ProductGallery> productGalleryRepository, IRepository<ProductSelectedCategory> productSelectedCategoryRepository, IRepository<ProductSize> productSizeRepository, IRepository<ProductVariant> productVariantRepository, ICategoryService categoryService)
+
+    public ProductService(IRepository<Brand> brandRepository, IRepository<Product> productRepository, IRepository<ProductCategory> productCategoryRepository, IRepository<ProductColor> productColorRepository, IRepository<ProductFeature> productFeatureRepository, IRepository<ProductGallery> productGalleryRepository, IRepository<ProductSelectedCategory> productSelectedCategoryRepository, IRepository<ProductSize> productSizeRepository, IRepository<ProductVariant> productVariantRepository, ICategoryService categoryService, IMemoryCache cashe)
     {
         _brandRepository = brandRepository;
         _productRepository = productRepository;
@@ -38,6 +41,7 @@ public class ProductService : IProductService
         _productSizeRepository = productSizeRepository;
         _productVariantRepository = productVariantRepository;
         _categoryService = categoryService;
+        _cache = cashe;
     }
 
 
@@ -139,7 +143,7 @@ public class ProductService : IProductService
     }
 
     #endregion
-    
+
     #region Size
 
     public async Task<FilterSizeDto> FilterSizes(FilterSizeDto filter)
@@ -177,7 +181,7 @@ public class ProductService : IProductService
         return await _productSizeRepository.GetQuery().ToListAsync();
     }
     #endregion
-    
+
     #region Product
 
     public async Task<CreateProductResult> CreateProduct(CreateProductDto dto)
@@ -479,6 +483,29 @@ public class ProductService : IProductService
         }
         await _productFeatureRepository.SaveChanges();
     }
+    public async Task<List<ProductItemDto>> GetNewestProducts()
+    {
+        var products = await _cache.GetOrCreateAsync("NewProducts", async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1);
+
+                var newProducts = await _productRepository.GetQuery()
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Take(10)
+                    .Select(p => new ProductItemDto
+                    {
+                        ProductId = p.Id,
+                        Title = p.Title,
+                        Image = p.MainImageName,
+                        Price = p.Price,
+                    })
+                    .ToListAsync();
+
+                return newProducts;
+            });
+        return products ?? new List<ProductItemDto>();
+    }
+
 
     #endregion
 }

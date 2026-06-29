@@ -1,0 +1,110 @@
+@using Application.Extensions
+@using Data.Entities.Common
+@model List<Data.Entities.Common.Banner>
+@{
+    ViewData["Title"] = "مدیریت بنرها";
+}
+
+<div class="page-header">
+    <div class="page-sub-title">لیست بنرها</div>
+    <a asp-action="CreateBanner" class="btn-green">
+        <i class="ti ti-plus" aria-hidden="true"></i> افزودن بنر
+    </a>
+</div>
+
+<div class="tbl-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:44px">#</th>
+                <th style="width:120px">تصویر</th>
+                <th>عنوان</th>
+                <th>لینک</th>
+                <th style="width:100px">موقعیت</th>
+                <th style="width:70px">ترتیب</th>
+                <th style="width:130px">عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                int i = 1;
+                @foreach (var banner in Model.OrderBy(b => b.Order))
+                {
+                    <tr>
+                        <td>@(i++)</td>
+                        <td>
+                            <div class="img-thumb" style="width:100px;height:50px;border-radius:6px">
+                                <img src="@(PathExtension.BannerThumb + banner.ImageName)"
+                                     alt="@banner.Title"
+                                     style="width:100%;height:100%;object-fit:cover">
+                            </div>
+                        </td>
+                        <td>@banner.Title</td>
+                        <td>
+                            <span class="txt-link mono" style="font-size:12px">
+                                @banner.Url
+                            </span>
+                        </td>
+                        <td>
+                            @* نمایش Display Name از enum *@
+                            @switch (banner.BannerLocation)
+                            {
+                                case BannerLocation.Slider:
+                                    <span class="dto-label" style="background:#dbeafe;color:#1d4ed8">اسلایدر</span>
+                                    break;
+                                case BannerLocation.FirstRow:
+                                    <span class="dto-label" style="background:#dcfce7;color:#15803d">سطر اول</span>
+                                    break;
+                                case BannerLocation.SecondRow:
+                                    <span class="dto-label" style="background:#fef9c3;color:#854d0e">سطر دوم</span>
+                                    break;
+                            }
+                        </td>
+                        <td style="text-align:center">@banner.Order</td>
+                        <td>
+                            <button type="button" class="badge-del"
+                                    onclick="confirmDelete('@banner.Title')">
+                                حذف
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7"
+                        style="text-align:center;color:var(--text-muted);padding:2rem">
+                        <i class="ti ti-photo-off"
+                           style="font-size:24px;display:block;margin-bottom:6px"></i>
+                        بنری یافت نشد
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section AdminFooterSection {
+    <script>
+        function confirmDelete(title) {
+            Swal.fire({
+                title: 'حذف بنر',
+                text: `آیا از حذف "${title}" مطمئن هستید؟`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'بله، حذف شود',
+                cancelButtonText: 'انصراف',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                width: '28em'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    @* بعداً که DeleteBanner رو اضافه کردی اینجا رو کامل کن *@
+                    Swal.fire('حذف شد', '', 'success');
+                }
+            });
+        }
+    </script>
+}

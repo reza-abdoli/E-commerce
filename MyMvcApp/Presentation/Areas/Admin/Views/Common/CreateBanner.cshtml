@@ -1,0 +1,79 @@
+@using Data.Entities.Common
+@model Data.DTOs.Common.CreateBannerDto
+@{
+    ViewData["Title"] = "افزودن بنر";
+}
+
+<div class="page-header">
+    <div class="page-sub-title">افزودن بنر جدید</div>
+    <a asp-action="BannersList" class="btn-blue">
+        <i class="ti ti-arrow-right" aria-hidden="true"></i> بازگشت به لیست
+    </a>
+</div>
+
+<div class="form-card" style="max-width:680px">
+    <div class="form-section-title">
+        اطلاعات بنر
+        <span class="dto-label">CreateBannerDto</span>
+    </div>
+
+    <form asp-action="CreateBanner" method="post" enctype="multipart/form-data">
+
+        <div class="two">
+            <div class="fg">
+                <label asp-for="Title">عنوان (Title)</label>
+                <input asp-for="Title" placeholder="مثال: بنر تابستانه">
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            <div class="fg">
+                <label asp-for="Url">لینک (Url)</label>
+                <input asp-for="Url" placeholder="مثال: /products/summer">
+                <span asp-validation-for="Url" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="two">
+            <div class="fg">
+                <label asp-for="BannerLocation">موقعیت بنر (BannerLocation)</label>
+                <select asp-for="BannerLocation"
+                        asp-items="@Html.GetEnumSelectList<BannerLocation>()">
+                </select>
+                <span asp-validation-for="BannerLocation" class="text-danger"></span>
+            </div>
+            <div class="fg">
+                <label asp-for="Order">ترتیب نمایش (Order)</label>
+                <input asp-for="Order" type="number" placeholder="1">
+                <span asp-validation-for="Order" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="fg">
+            <label asp-for="ImageFile">تصویر بنر (ImageFile)</label>
+            <div class="file-zone" onclick="document.getElementById('banner-img').click()">
+                <i class="ti ti-photo" aria-hidden="true"></i>
+                انتخاب تصویر
+                <input asp-for="ImageFile"
+                       type="file" id="banner-img"
+                       accept="image/*" style="display:none"
+                       onchange="previewImg(this, 'banner-preview')">
+            </div>
+            <img id="banner-preview" class="img-preview"
+                 style="width:200px;height:auto;max-height:100px"
+                 alt="پیش‌نمایش بنر">
+            <span asp-validation-for="ImageFile" class="text-danger"></span>
+            <div class="hint">ابعاد پیشنهادی: ۳۰۰×۱۵۰ پیکسل</div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-green">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+            </button>
+            <a asp-action="BannersList" class="btn-outline">انصراف</a>
+        </div>
+
+    </form>
+</div>
+
+@section AdminFooterSection {
+    <partial name="_ValidationScriptsPartial" />
+}

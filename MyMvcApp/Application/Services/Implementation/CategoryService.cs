@@ -81,7 +81,7 @@ public class CategoryService : ICategoryService
     
         if (!string.IsNullOrEmpty(filter.Title))
         {
-            query = query.Where(c => EF.Functions.Like(c.Title, $"{filter.Title}"));
+            query = query.Where(c => EF.Functions.Like(c.Title, $"%{filter.Title}%"));
         }
 
         if (filter.ParentId is > 0)
