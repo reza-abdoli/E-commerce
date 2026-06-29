@@ -13,11 +13,15 @@ public interface IProductService : IAsyncDisposable
     #region Color
     Task<FilterColorDto> FilterColors(FilterColorDto filter);
     Task CreateColor(CreateColorDTo color);
+
+    Task<List<ProductColor>>GetAllProductColors();
     #endregion
 
     #region Size
     Task<FilterSizeDto> FilterSizes(FilterSizeDto filter);
     Task CreateSize(CreateSizeDto dto);
+
+    Task<List<ProductSize>> GetAllProductSizes(); 
     #endregion
 
     #region Brand
@@ -34,6 +38,10 @@ public interface IProductService : IAsyncDisposable
     Task<EditProductResult> EditProduct(EditProductDto dto);
 
     Task<ProductDetailDto> GetProductDetail(long productId);
+
+    Task CreateProductVariant(CreateProductVariantDto dto);
+
+    Task CreateProductFeature(CreateProductFeatureDto dto);
 
 
     #endregion

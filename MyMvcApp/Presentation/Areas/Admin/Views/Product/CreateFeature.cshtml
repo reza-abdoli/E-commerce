@@ -1,0 +1,161 @@
+@model Data.DTOs.Product.CreateProductFeatureDto
+@{
+    ViewData["Title"] = "افزودن ویژگی محصول";
+    var productId = (long)ViewData["ProductId"];
+}
+
+<div class="page-header">
+    <div class="page-sub-title">افزودن ویژگی محصول</div>
+    <a asp-action="ProductDetail"
+       asp-route-productId="@productId"
+       class="btn-blue">
+        <i class="ti ti-arrow-right" aria-hidden="true"></i> بازگشت به محصول
+    </a>
+</div>
+
+<div class="form-card">
+    <div class="form-section-title">
+        ویژگی‌های محصول
+        <span class="dto-label">CreateProductFeatureDto</span>
+    </div>
+
+    <form asp-action="CreateFeature" method="post" id="featureForm">
+
+        <input type="hidden" name="ProductId" value="@productId">
+
+        <div class="tbl-wrap" style="margin-bottom:1rem">
+            <table id="featureTable">
+                <thead>
+                    <tr>
+                        <th>عنوان ویژگی</th>
+                        <th>مقدار</th>
+                        <th style="width:100px">ترتیب</th>
+                        <th style="width:60px">حذف</th>
+                    </tr>
+                </thead>
+                <tbody id="featureBody">
+                    <tr>
+                        <td>
+                            <input type="text"
+                                   name="FeatureItems[0].Title"
+                                   placeholder="مثال: جنس پارچه"
+                                   style="width:100%;padding:7px 10px;font-size:13px;
+                                          border:1px solid var(--border-mid);border-radius:6px;
+                                          font-family:var(--font-main)">
+                        </td>
+                        <td>
+                            <input type="text"
+                                   name="FeatureItems[0].Value"
+                                   placeholder="مثال: کتان"
+                                   style="width:100%;padding:7px 10px;font-size:13px;
+                                          border:1px solid var(--border-mid);border-radius:6px;
+                                          font-family:var(--font-main)">
+                        </td>
+                        <td>
+                            <input type="number"
+                                   name="FeatureItems[0].Order"
+                                   value="1" min="1"
+                                   style="width:100%;padding:7px 10px;font-size:13px;
+                                          border:1px solid var(--border-mid);border-radius:6px;
+                                          font-family:var(--font-main)">
+                        </td>
+                        <td style="text-align:center">
+                            <button type="button" class="badge-del" disabled
+                                    style="opacity:0.4;cursor:not-allowed">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="form-error"
+             style="display:none;color:#dc2626;font-size:12px;margin-bottom:10px">
+            لطفاً همه فیلدها را پر کنید
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-blue" onclick="addRow()">
+                <i class="ti ti-plus" aria-hidden="true"></i> افزودن ردیف
+            </button>
+            <button type="submit" class="btn-green">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+            </button>
+            <a asp-action="ProductDetail"
+               asp-route-productId="@productId"
+               class="btn-outline">انصراف</a>
+        </div>
+
+    </form>
+</div>
+
+@section AdminFooterSection {
+    <script>
+        let rowIndex = 1;
+
+        function addRow() {
+            const tbody = document.getElementById('featureBody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <input type="text"
+                           name="FeatureItems[${rowIndex}].Title"
+                           placeholder="مثال: جنس پارچه"
+                           style="width:100%;padding:7px 10px;font-size:13px;
+                                  border:1px solid var(--border-mid);border-radius:6px;
+                                  font-family:var(--font-main)">
+                </td>
+                <td>
+                    <input type="text"
+                           name="FeatureItems[${rowIndex}].Value"
+                           placeholder="مثال: کتان"
+                           style="width:100%;padding:7px 10px;font-size:13px;
+                                  border:1px solid var(--border-mid);border-radius:6px;
+                                  font-family:var(--font-main)">
+                </td>
+                <td>
+                    <input type="number"
+                           name="FeatureItems[${rowIndex}].Order"
+                           value="${rowIndex + 1}" min="1"
+                           style="width:100%;padding:7px 10px;font-size:13px;
+                                  border:1px solid var(--border-mid);border-radius:6px;
+                                  font-family:var(--font-main)">
+                </td>
+                <td style="text-align:center">
+                    <button type="button" class="badge-del" onclick="removeRow(this)">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            rowIndex++;
+        }
+
+        function removeRow(btn) {
+            btn.closest('tr').remove();
+        }
+
+        document.getElementById('featureForm').addEventListener('submit', function(e) {
+            const inputs  = this.querySelectorAll('input:not([type="hidden"])');
+            const errorEl = document.getElementById('form-error');
+            let valid = true;
+
+            inputs.forEach(i => {
+                if (!i.value.trim()) {
+                    i.style.borderColor = '#dc2626';
+                    valid = false;
+                } else {
+                    i.style.borderColor = '';
+                }
+            });
+
+            if (!valid) {
+                e.preventDefault();
+                errorEl.style.display = 'block';
+            } else {
+                errorEl.style.display = 'none';
+            }
+        });
+    </script>
+}

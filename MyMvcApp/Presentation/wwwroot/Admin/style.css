@@ -715,3 +715,10 @@ input[type="color"] {
   margin-top: 3px;
   display: block;
 }
+
+a,
+a:hover,
+a:focus,
+a:active {
+    text-decoration: none !important;
+}

@@ -84,7 +84,10 @@ public class ProductService : IProductService
         };
     }
 
-
+    public async Task<List<ProductColor>> GetAllProductColors()
+    {
+        return await _productColorRepository.GetQuery().ToListAsync();
+    }
     #endregion
 
     #region Brand
@@ -136,7 +139,45 @@ public class ProductService : IProductService
     }
 
     #endregion
+    
+    #region Size
 
+    public async Task<FilterSizeDto> FilterSizes(FilterSizeDto filter)
+    {
+        var query = _productSizeRepository.GetQuery().OrderByDescending(c => c.CreatedAt).AsQueryable();
+        if (!string.IsNullOrEmpty(filter.Title))
+        {
+            query = query.Where(c => EF.Functions.Like(c.Title, $"%{filter.Title}%"));
+        }
+        if (!string.IsNullOrEmpty(filter.SizeType))
+        {
+            query = query.Where(c => EF.Functions.Like(c.SizeType, $"%{filter.SizeType}%"));
+        }
+        return new FilterSizeDto
+        {
+            Title = filter.Title,
+            SizeType = filter.SizeType,
+            Data = await query.ToListAsync()
+        };
+
+    }
+
+    public async Task CreateSize(CreateSizeDto dto)
+    {
+        await _productSizeRepository.AddEntity(new ProductSize
+        {
+            Title = dto.Title,
+            SizeType = dto.SizeType,
+            Order = dto.Order
+        });
+        await _productSizeRepository.SaveChanges();
+    }
+    public async Task<List<ProductSize>> GetAllProductSizes()
+    {
+        return await _productSizeRepository.GetQuery().ToListAsync();
+    }
+    #endregion
+    
     #region Product
 
     public async Task<CreateProductResult> CreateProduct(CreateProductDto dto)
@@ -166,7 +207,7 @@ public class ProductService : IProductService
         {
             return CreateProductResult.BrandNotFound;
         }
-        newProduct.BrandId = dto.BrandId;
+        newProduct.BrandId = dto.BrandId == 0 ? null : dto.BrandId;
 
         await _productRepository.AddEntity(newProduct);
         await _productRepository.SaveChanges();
@@ -346,9 +387,9 @@ public class ProductService : IProductService
         await _categoryService.RemoveProductSelectedCategories(dto.ProductId);
         var addCategoryResult = await _categoryService.AddProductSelectedCategories(dto.Categories, dto.ProductId);
         if (!addCategoryResult) return EditProductResult.CategoryNotFound;
-        #endregion
 
-        #region Main Image
+
+
         if (dto.MainImage != null)
         {
             var newUniqueImageName = Guid.NewGuid().ToString("N") + Path.GetExtension(dto.MainImage.FileName);
@@ -363,7 +404,7 @@ public class ProductService : IProductService
             }
 
         }
-        #endregion
+
 
         _productRepository.UpdateEntity(product);
         await _productRepository.SaveChanges();
@@ -403,34 +444,41 @@ public class ProductService : IProductService
         return model;
     }
 
-    public async Task<FilterSizeDto> FilterSizes(FilterSizeDto filter)
+    public async Task CreateProductVariant(CreateProductVariantDto dto)
     {
-        var query = _productSizeRepository.GetQuery().OrderByDescending(c => c.CreatedAt).AsQueryable();
-        if (!string.IsNullOrEmpty(filter.Title))
+        foreach (var item in dto.Variantitems)
         {
-            query = query.Where(c => EF.Functions.Like(c.Title, $"%{filter.Title}%"));
+            var color = await _productColorRepository.GetEntityById(item.ColorId);
+            var productVariant = new ProductVariant
+            {
+                ProductId = dto.ProductId,
+                ColorId = item.ColorId,
+                SizeId = item.SizeId,
+                StockCount = item.StockCount,
+                ColorTitle = color.Title,
+                ColorCode = color.ColorCode,
+                SizeTitle = await _productSizeRepository.GetQuery().Where(s => s.Id == item.SizeId).Select(s => s.Title).SingleOrDefaultAsync()
+            };
+            await _productVariantRepository.AddEntity(productVariant);
         }
-        if (!string.IsNullOrEmpty(filter.SizeType))
-        {
-            query = query.Where(c => EF.Functions.Like(c.SizeType, $"%{filter.SizeType}%"));
-        }
-        return new FilterSizeDto
-        {
-            Title = filter.Title,
-            SizeType = filter.SizeType,
-            Data = await query.ToListAsync()
-        };
-
+        await _productVariantRepository.SaveChanges();
     }
 
-    public async Task CreateSize(CreateSizeDto dto)
+    public async Task CreateProductFeature(CreateProductFeatureDto dto)
     {
-        await _productSizeRepository.AddEntity(new ProductSize
+        foreach (var item in dto.FeatureItems)
         {
-            Title = dto.Title,
-            SizeType = dto.SizeType,
-            Order = dto.Order
-        });
-        await _productSizeRepository.SaveChanges();
+            var productFeature = new ProductFeature
+            {
+                ProductId = dto.ProductId,
+                Title = item.Title,
+                Value = item.Value,
+                Order = item.Order
+            };
+            await _productFeatureRepository.AddEntity(productFeature);
+        }
+        await _productFeatureRepository.SaveChanges();
     }
+
+    #endregion
 }

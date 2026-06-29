@@ -122,8 +122,8 @@
         <div id="tab-variants" class="tab-pane">
             <div style="margin-bottom:10px">
                 <a asp-action="CreateVariant"
-                   asp-route-productId="@Model.Id"
-                   class="btn-green" style="font-size:12px">
+                asp-route-productId="@Model.Id"
+                class="btn-green" style="font-size:12px">
                     <i class="ti ti-plus" aria-hidden="true"></i> افزودن موجودی
                 </a>
             </div>
@@ -133,7 +133,7 @@
                         <tr>
                             <th style="width:44px">#</th>
                             <th>رنگ</th>
-                            <th style="width:130px">قیمت</th>
+                            <th>سایز</th>
                             <th style="width:100px">موجودی</th>
                             <th style="width:130px">عملیات</th>
                         </tr>
@@ -148,29 +148,19 @@
                                     <td>@(vi++)</td>
                                     <td>
                                         <div style="display:flex;align-items:center;gap:7px">
-                                            <span class="color-dot"
-                                                  style="background:@v.ColorCode"></span>
+                                            <span class="color-dot" style="background:@v.ColorCode"></span>
                                             @v.ColorTitle
                                         </div>
                                     </td>
-                                    <td>
-                                        @if (@Model.Price > 0)
-                                        {
-                                            <span>@((Model.Price).ToString("N0")) تومان</span>
-                                        }
-                                        else
-                                        {
-                                            <span style="color:var(--text-muted)">قیمت پایه</span>
-                                        }
-                                    </td>
+                                    <td>@v.SizeTitle</td>
                                     <td style="text-align:center">
                                         @v.StockCount.ToString("N0")
                                     </td>
                                     <td>
                                         <a asp-action="EditVariant"
-                                           asp-route-productId="@Model.Id"
-                                           asp-route-variantId="@v.Id"
-                                           class="badge-edit">ویرایش</a>
+                                        asp-route-productId="@Model.Id"
+                                        asp-route-variantId="@v.Id"
+                                        class="badge-edit">ویرایش</a>
                                         <button type="button" class="badge-del"
                                                 onclick="confirmDeleteVariant(@v.Id, '@v.ColorTitle')">
                                             حذف
@@ -182,7 +172,10 @@
                         else
                         {
                             <tr>
-                                <td colspan="5" style="text-align:center;color:var(--text-muted);padding:1.5rem">
+                                <td colspan="5"
+                                    style="text-align:center;color:var(--text-muted);padding:1.5rem">
+                                    <i class="ti ti-mood-empty"
+                                    style="font-size:24px;display:block;margin-bottom:6px"></i>
                                     موجودی تعریف نشده
                                 </td>
                             </tr>

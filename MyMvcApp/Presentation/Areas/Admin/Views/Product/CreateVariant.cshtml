@@ -1,0 +1,211 @@
+@using Data.Entities
+@{
+    ViewData["Title"] = "افزودن موجودی";
+    var productId = (long)ViewData["ProductId"];
+    var colors    = ViewData["Colors"] as List<ProductColor> ?? new();
+    var sizes     = ViewData["Sizes"]  as List<ProductSize>  ?? new();
+}
+
+<div class="page-header">
+    <div class="page-sub-title">افزودن موجودی محصول</div>
+    <a asp-action="ProductDetail"
+       asp-route-productId="@productId"
+       class="btn-blue">
+        <i class="ti ti-arrow-right" aria-hidden="true"></i> بازگشت به محصول
+    </a>
+</div>
+
+<div class="form-card">
+    <div class="form-section-title">
+        تنوع‌های موجودی
+        <span class="dto-label">CreateProductVariantDto</span>
+    </div>
+
+    <form asp-action="CreateVariant" method="post" id="variantForm">
+
+        <input type="hidden" name="ProductId" value="@productId">
+
+        <div class="tbl-wrap" style="margin-bottom:1rem">
+            <table id="variantTable">
+                <thead>
+                    <tr>
+                        <th>رنگ</th>
+                        <th>سایز</th>
+                        <th style="width:130px">تعداد موجودی</th>
+                        <th style="width:60px">حذف</th>
+                    </tr>
+                </thead>
+                <tbody id="variantBody">
+                    <tr>
+                        <td>
+                            <select name="Variantitems[0].ColorId"
+                                    style="width:100%;padding:7px 10px;font-size:13px;
+                                        border:1px solid var(--border-mid);border-radius:6px;
+                                        font-family:var(--font-main)">
+                                <option value="">— انتخاب رنگ —</option>
+                                @foreach (var c in colors)
+                                {
+                                    <option value="@c.Id">@c.Title</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select name="Variantitems[0].SizeId"
+                                    style="width:100%;padding:7px 10px;font-size:13px;
+                                        border:1px solid var(--border-mid);border-radius:6px;
+                                        font-family:var(--font-main)">
+                                <option value="">— انتخاب سایز —</option>
+                                @foreach (var s in sizes)
+                                {
+                                    <option value="@s.Id">@s.Title — @s.SizeType</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <input type="number" name="Variantitems[0].StockCount"
+                                min="0" placeholder="مثال: 10"
+                                style="width:100%;padding:7px 10px;font-size:13px;
+                                        border:1px solid var(--border-mid);border-radius:6px;
+                                        font-family:var(--font-main)">
+                        </td>
+                        <td style="text-align:center">
+                            <button type="button" class="badge-del" disabled
+                                    style="opacity:0.4;cursor:not-allowed">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="form-error"
+             style="display:none;color:#dc2626;font-size:12px;margin-bottom:10px">
+            لطفاً همه فیلدها را پر کنید
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-blue" onclick="addRow()">
+                <i class="ti ti-plus" aria-hidden="true"></i> افزودن ردیف
+            </button>
+            <button type="submit" class="btn-green">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> ذخیره
+            </button>
+            <a asp-action="ProductDetail"
+               asp-route-productId="@productId"
+               class="btn-outline">انصراف</a>
+        </div>
+
+    </form>
+</div>
+
+@* پنل نمایش رنگ‌ها — راهنما *@
+<div class="form-card" style="margin-top:1rem">
+    <div class="form-section-title">
+        <i class="ti ti-palette" aria-hidden="true"></i> راهنمای رنگ‌ها
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+        @foreach (var c in colors)
+        {
+            <div style="display:flex;align-items:center;gap:6px;
+                        font-size:12px;color:var(--text-secondary)">
+                <span class="color-dot" style="background:@c.ColorCode"></span>
+                @c.Title
+            </div>
+        }
+    </div>
+</div>
+
+@section AdminFooterSection {
+    <script>
+        // HTML رنگ‌ها و سایزها رو از Razor میگیریم
+        const colorOptions = `
+            <option value="">— انتخاب رنگ —</option>
+            @Html.Raw(string.Join("", colors.Select(c =>
+                $"<option value='{c.Id}'>{c.Title}</option>")))
+        `;
+
+        const sizeOptions = `
+            <option value="">— انتخاب سایز —</option>
+            @Html.Raw(string.Join("", sizes.Select(s =>
+                $"<option value='{s.Id}'>{s.Title} — {s.SizeType}</option>")))
+        `;
+
+        let rowIndex = 1;
+
+        function addRow() {
+            const tbody = document.getElementById('variantBody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <select name="Variantitems[${rowIndex}].ColorId"
+                            style="width:100%;padding:7px 10px;font-size:13px;
+                                   border:1px solid var(--border-mid);border-radius:6px;
+                                   font-family:var(--font-main)">
+                        ${colorOptions}
+                    </select>
+                </td>
+                <td>
+                    <select name="Variantitems[${rowIndex}].SizeId"
+                            style="width:100%;padding:7px 10px;font-size:13px;
+                                   border:1px solid var(--border-mid);border-radius:6px;
+                                   font-family:var(--font-main)">
+                        ${sizeOptions}
+                    </select>
+                </td>
+                <td>
+                    <input type="number"
+                           name="Variantitems[${rowIndex}].StockCount"
+                           min="0" placeholder="مثال: 10"
+                           style="width:100%;padding:7px 10px;font-size:13px;
+                                  border:1px solid var(--border-mid);border-radius:6px;
+                                  font-family:var(--font-main)">
+                </td>
+                <td style="text-align:center">
+                    <button type="button" class="badge-del" onclick="removeRow(this)">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            rowIndex++;
+        }
+
+        function removeRow(btn) {
+            btn.closest('tr').remove();
+        }
+
+        // validation قبل از submit
+        document.getElementById('variantForm').addEventListener('submit', function(e) {
+            const selects  = this.querySelectorAll('select');
+            const inputs   = this.querySelectorAll('input[type="number"]');
+            const errorEl  = document.getElementById('form-error');
+            let valid = true;
+
+            selects.forEach(s => {
+                if (!s.value) {
+                    s.style.borderColor = '#dc2626';
+                    valid = false;
+                } else {
+                    s.style.borderColor = '';
+                }
+            });
+
+            inputs.forEach(i => {
+                if (!i.value || Number(i.value) < 0) {
+                    i.style.borderColor = '#dc2626';
+                    valid = false;
+                } else {
+                    i.style.borderColor = '';
+                }
+            });
+
+            if (!valid) {
+                e.preventDefault();
+                errorEl.style.display = 'block';
+            } else {
+                errorEl.style.display = 'none';
+            }
+        });
+    </script>
+}

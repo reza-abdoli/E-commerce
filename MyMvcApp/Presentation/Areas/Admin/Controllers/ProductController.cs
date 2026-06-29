@@ -137,7 +137,7 @@ public class ProductController : AdminBaseController
             return View(dto);
         }
         await _productService.CreateSize(dto);
-      
+
         TempData[SuccessMessage] = SuccessText;
         return RedirectToAction("FilterSize");
     }
@@ -281,6 +281,63 @@ public class ProductController : AdminBaseController
         return View(productDetail);
     }
 
+    [HttpGet("create-variant")]
 
+    public async Task<IActionResult> CreateVariant(long productId)
+    {
+        ViewData["ProductId"] = productId;
+        var colors = await _productService.GetAllProductColors();
+        var sizes = await _productService.GetAllProductSizes();
+        if (colors == null || sizes == null)
+        {
+            TempData[ErrorMessage] = " رنگ یا سایزی یافت نشد";
+            return View();
+
+        }
+        ViewData["Colors"] = colors;
+        ViewData["Sizes"] = sizes;
+        return View();
+    }
+    [HttpPost("create-variant"), ValidateAntiForgeryToken]
+
+    public async Task<IActionResult> CreateVariant(CreateProductVariantDto dto)
+    {
+        ViewData["ProductId"] = dto.ProductId;
+        var colors = await _productService.GetAllProductColors();
+        var sizes = await _productService.GetAllProductSizes();
+        if (colors == null || sizes == null)
+        {
+            TempData[ErrorMessage] = " رنگ یا سایزی یافت نشد";
+            return View(dto);
+        }
+        ViewData["Colors"] = colors;
+        ViewData["Sizes"] = sizes;
+        if (!ModelState.IsValid)
+        {
+            TempData[ErrorMessage] = "فیلد ها را کامل وارد کنید";
+            return View(dto);
+        }
+        await _productService.CreateProductVariant(dto);
+        return RedirectToAction("ProductDetail", "Product", new { area = "Admin", productId = dto.ProductId });
+    }
+
+
+
+
+    [HttpGet("create-feature")]
+    public IActionResult CreateFeature(long productId)
+    {
+        ViewData["ProductId"] = productId;
+        return View();
+    }
+
+    [HttpPost("create-feature"), ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateFeature(CreateProductFeatureDto features)
+    {
+        if (!ModelState.IsValid) return View(features);
+        await _productService.CreateProductFeature(features);
+        TempData[SuccessMessage] = SuccessText;
+        return RedirectToAction("ProductDetail", new { area = "Admin", productId = features.ProductId });
+    }
     #endregion
 }
