@@ -8,10 +8,12 @@ using Data.Entities.User;
 
 namespace Application.Services.Interface;
 
-public interface IUserService
+public interface IUserService : IAsyncDisposable
 {
     Task<User?> GetUserByUsername(string username);
     Task CreateUser(RegisterOrLoginDto registerOrLoginDto);
     Task<bool> GetLogin(RegisterOrLoginDto registerOrLoginDto);
+
+    Task<UserDashboardDetailDto> UserDashboardDetail(long userId);
 
 }

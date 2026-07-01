@@ -32,7 +32,7 @@ namespace Presentation.Controllers;
         #endregion
 
         #region Product Detail
-        [HttpGet("product")]
+        [HttpGet("product-detail")]
         public async Task<IActionResult> ProductDetail(long productId)
         {
             var model = await _productService.GetProductDetail(productId);

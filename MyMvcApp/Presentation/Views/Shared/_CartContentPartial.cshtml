@@ -1,0 +1,68 @@
+@using Application.Extensions
+@model Data.DTOs.Order.OpenOrderDto
+
+<div id="cartContentWrapper">
+    @if (Model == null || !Model.OrderDetails.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-cart-x fs-1 text-muted"></i>
+            <p class="text-muted mt-2">سبد خرید شما خالی است</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>محصول</th>
+                        <th>قیمت واحد</th>
+                        <th>تعداد</th>
+                        <th>قیمت کل</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.OrderDetails)
+                    {
+                        <tr>
+                            <td class="d-flex align-items-center gap-2">
+                                <img src="@(PathExtension.ProductImageThumb + item.ProductVariant.Product.MainImageName)"
+                                     style="width:50px;height:50px;object-fit:cover" class="rounded border" alt="">
+                                <span>@item.ProductVariant.Product.Title</span>
+                            </td>
+                            <td>@item.ProductPrice.ToString("N0") تومان</td>
+                            <td>
+                                <form asp-area="User" asp-controller="Order" asp-action="ChangeOrderDetailCount"
+                                      method="post" class="d-flex align-items-center gap-1 cart-qty-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="orderDetailId" value="@item.Id">
+                                    <button type="submit" name="newCount" value="@(item.Count - 1)"
+                                            class="btn btn-sm btn-outline-secondary">−</button>
+                                    <span class="mx-2">@item.Count</span>
+                                    <button type="submit" name="newCount" value="@(item.Count + 1)"
+                                            class="btn btn-sm btn-outline-secondary">+</button>
+                                </form>
+                            </td>
+                            <td>@item.TotalPrice.ToString("N0") تومان</td>
+                            <td>
+                                <form asp-area="User" asp-controller="Order" asp-action="ChangeOrderDetailCount"
+                                      method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="orderDetailId" value="@item.Id">
+                                    <input type="hidden" name="newCount" value="0">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="text-end fw-bold fs-5">
+            جمع کل: @Model.Order.TotalPrice.ToString("N0") تومان
+        </div>
+    }
+</div>

@@ -1,0 +1,329 @@
+@using Application.Extensions
+@using Data.DTOs.Product
+@using Data.Entities
+@model Data.DTOs.Product.FilterProductDto
+@{
+    ViewData["Title"] = "لیست محصولات";
+    var colors = ViewData["Colors"] as List<ProductColor> ?? new();
+    var sizes  = ViewData["Sizes"]  as List<ProductSize>  ?? new();
+}
+
+<section class="py-4">
+    <div class="container">
+        <div class="row g-4">
+
+            @* ─── فیلتر Desktop ─── *@
+            <div class="col-lg-3 d-none d-lg-block">
+                <form asp-controller="Product" asp-action="FilterProducts"
+                      method="get" id="filter-form">
+                    <input type="hidden" asp-for="categoryUrl">
+
+                    <div class="bg-white rounded-4 border shadow-sm p-3 position-sticky"
+                         style="top:16px">
+
+                        @* جستجو *@
+                        <div class="mb-3">
+                            <label class="fw-bold font-13 mb-2">جستجوی محصول</label>
+                            <div class="input-group">
+                                <input asp-for="Title" class="form-control form-control-sm"
+                                       placeholder="نام محصول...">
+                                <button class="btn btn-sm btn-danger" type="submit">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <hr class="my-2">
+
+                        @* بازه قیمت *@
+                        <div class="mb-3">
+                            <label class="fw-bold font-13 mb-2">بازه قیمت (تومان)</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <input asp-for="StartPrice" type="number"
+                                           class="form-control form-control-sm"
+                                           placeholder="از">
+                                </div>
+                                <div class="col-6">
+                                    <input asp-for="EndPrice" type="number"
+                                           class="form-control form-control-sm"
+                                           placeholder="تا">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-2">
+
+                        @* رنگ *@
+                        @if (colors.Any())
+                        {
+                            <div class="mb-3">
+                                <label class="fw-bold font-13 mb-2">رنگ</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <div>
+                                        <input type="radio" class="btn-check"
+                                               asp-for="ColorId" value=""
+                                               id="color-all" autocomplete="off">
+                                        <label class="btn btn-sm btn-outline-secondary"
+                                               for="color-all">همه</label>
+                                    </div>
+                                    @foreach (var c in colors.OrderBy(c => c.Title))
+                                    {
+                                        <div>
+                                            <input type="radio" class="btn-check"
+                                                   asp-for="ColorId" value="@c.Id"
+                                                   id="color-@c.Id" autocomplete="off">
+                                            <label class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                                                   for="color-@c.Id">
+                                                <span style="width:14px;height:14px;border-radius:50%;
+                                                             background:@c.ColorCode;
+                                                             border:1px solid #ddd;
+                                                             display:inline-block"></span>
+                                                @c.Title
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                        }
+
+                        @* ترتیب *@
+                        <div class="mb-3">
+                            <label class="fw-bold font-13 mb-2">ترتیب نمایش</label>
+                            <select asp-for="ProductOrder"
+                                    asp-items="@Html.GetEnumSelectList<FilterProductOrder>()"
+                                    class="form-select form-select-sm"
+                                    onchange="this.form.submit()">
+                            </select>
+                        </div>
+
+                        <hr class="my-2">
+
+                        @* وضعیت *@
+                        <div class="mb-3">
+                            <label class="fw-bold font-13 mb-2">وضعیت موجودی</label>
+                            <select asp-for="ProductStatus"
+                                    asp-items="@Html.GetEnumSelectList<FilterProductStatus>()"
+                                    class="form-select form-select-sm"
+                                    onchange="this.form.submit()">
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-danger w-100 btn-sm">
+                            <i class="bi bi-funnel me-1"></i> اعمال فیلتر
+                        </button>
+                        <a asp-action="FilterProducts"
+                           class="btn btn-outline-secondary w-100 btn-sm mt-2">
+                            پاک‌کردن فیلترها
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            @* ─── لیست محصولات ─── *@
+            <div class="col-lg-9">
+
+                @* نوار ابزار بالا *@
+                <div class="bg-white rounded-4 border shadow-sm p-3 mb-3
+                            d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="font-13 text-muted">
+                        <i class="bi bi-grid me-1"></i>
+                        @Model.Data?.Count.ToString("N0") محصول یافت شد
+                    </div>
+
+                    @* فیلتر موبایل *@
+                    <button class="btn btn-sm btn-outline-danger d-lg-none"
+                            data-bs-toggle="offcanvas"
+                            data-bs-target="#mobileFilter">
+                        <i class="bi bi-funnel me-1"></i> فیلتر
+                    </button>
+
+                    @* ترتیب موبایل *@
+                    <form asp-action="FilterProducts" method="get" class="d-lg-none">
+                        <input type="hidden" asp-for="Title">
+                        <input type="hidden" asp-for="categoryUrl">
+                        <select asp-for="ProductOrder"
+                                asp-items="@Html.GetEnumSelectList<FilterProductOrder>()"
+                                class="form-select form-select-sm"
+                                onchange="this.form.submit()" style="min-width:140px">
+                        </select>
+                    </form>
+                </div>
+
+                @* گرید محصولات *@
+                @if (Model.Data != null && Model.Data.Any())
+                {
+                    <div class="row g-3">
+                        @foreach (var p in Model.Data)
+                        {
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <a asp-area="" asp-controller="Product" asp-action="ProductDetail"
+                                   asp-route-productId="@p.Id"
+                                   class="text-decoration-none">
+                                    <div class="bg-white rounded-4 border overflow-hidden h-100
+                                                d-flex flex-column shadow-sm modern-card">
+                                        <div class="bg-light d-flex align-items-center
+                                                    justify-content-center"
+                                             style="height:180px;overflow:hidden">
+                                            <img src="@(PathExtension.ProductImageThumb + p.MainImageName)"
+                                                 alt="@p.Title"
+                                                 class="img-fluid"
+                                                 style="max-height:100%;object-fit:contain">
+                                        </div>
+                                        <div class="p-3 d-flex flex-column flex-grow-1">
+                                            @if (p.SelectedCategories != null && p.SelectedCategories.Any())
+                                            {
+                                                <span class="text-muted font-11 mb-1">
+                                                    @p.SelectedCategories.First().Category?.Title
+                                                </span>
+                                            }
+                                            <p class="font-13 fw-bold text-dark mb-2 text-overflow-2">
+                                                @p.Title
+                                            </p>
+
+                                            @* رنگ‌های موجود *@
+                                            @if (p.ProductVariants != null && p.ProductVariants.Any())
+                                            {
+                                                <div class="d-flex gap-1 mb-2 flex-wrap">
+                                                    @foreach (var v in p.ProductVariants.Take(4))
+                                                    {
+                                                        <span style="width:14px;height:14px;
+                                                                     border-radius:50%;
+                                                                     background:@v.ColorCode;
+                                                                     border:1px solid #ddd;
+                                                                     display:inline-block"
+                                                              title="@v.ColorTitle"></span>
+                                                    }
+                                                    @if (p.ProductVariants.Count > 4)
+                                                    {
+                                                        <span class="font-11 text-muted">...</span>
+                                                    }
+                                                </div>
+                                            }
+
+                                            <div class="mt-auto">
+                                                <p class="fw-bolder text-danger mb-0 font-14">
+                                                    @p.Price.ToString("N0")
+                                                    <span class="font-11 text-dark fw-normal">تومان</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="bg-white rounded-4 border p-5 text-center shadow-sm">
+                        <i class="bi bi-search fs-1 text-muted d-block mb-3"></i>
+                        <h6 class="text-muted">محصولی یافت نشد</h6>
+                        @if (!string.IsNullOrEmpty(Model.Title))
+                        {
+                            <p class="text-muted font-13">
+                                نتیجه‌ای برای «@Model.Title» پیدا نشد
+                            </p>
+                        }
+                        <a asp-action="FilterProducts" class="btn btn-danger btn-sm mt-2">
+                            پاک‌کردن فیلترها
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ─── فیلتر موبایل Offcanvas ─── *@
+<div class="offcanvas offcanvas-start" id="mobileFilter" tabindex="-1">
+    <div class="offcanvas-header border-bottom">
+        <h6 class="offcanvas-title fw-bold">فیلترها</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form asp-controller="Product" asp-action="FilterProducts" method="get">
+            <input type="hidden" asp-for="categoryUrl">
+
+            <div class="mb-3">
+                <label class="fw-bold font-13 mb-2">جستجو</label>
+                <input asp-for="Title" class="form-control form-control-sm"
+                       placeholder="نام محصول...">
+            </div>
+
+            <div class="mb-3">
+                <label class="fw-bold font-13 mb-2">بازه قیمت (تومان)</label>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <input asp-for="StartPrice" type="number"
+                               class="form-control form-control-sm" placeholder="از">
+                    </div>
+                    <div class="col-6">
+                        <input asp-for="EndPrice" type="number"
+                               class="form-control form-control-sm" placeholder="تا">
+                    </div>
+                </div>
+            </div>
+
+            @if (colors.Any())
+            {
+                <div class="mb-3">
+                    <label class="fw-bold font-13 mb-2">رنگ</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <div>
+                            <input type="radio" class="btn-check"
+                                   name="ColorId" value=""
+                                   id="mob-color-all" autocomplete="off">
+                            <label class="btn btn-sm btn-outline-secondary"
+                                   for="mob-color-all">همه</label>
+                        </div>
+                        @foreach (var c in colors.OrderBy(c => c.Title))
+                        {
+                            <div>
+                                <input type="radio" class="btn-check"
+                                       name="ColorId" value="@c.Id"
+                                       id="mob-color-@c.Id" autocomplete="off">
+                                <label class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                                       for="mob-color-@c.Id">
+                                    <span style="width:14px;height:14px;border-radius:50%;
+                                                 background:@c.ColorCode;border:1px solid #ddd;
+                                                 display:inline-block"></span>
+                                    @c.Title
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="fw-bold font-13 mb-2">وضعیت</label>
+                <select asp-for="ProductStatus"
+                        asp-items="@Html.GetEnumSelectList<FilterProductStatus>()"
+                        class="form-select form-select-sm">
+                </select>
+            </div>
+
+            <button type="submit"
+                    class="btn btn-danger w-100"
+                    data-bs-dismiss="offcanvas">
+                اعمال فیلتر
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+    .modern-card { transition: all 0.3s ease; }
+    .modern-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 24px rgba(0,0,0,0.09) !important;
+    }
+    .text-overflow-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>

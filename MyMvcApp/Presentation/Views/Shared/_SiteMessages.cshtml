@@ -1,0 +1,59 @@
+@if (TempData["SuccessMessage"] != null)
+{
+    <script>
+        $(document).ready(function () {
+            Swal.fire({
+                title: "پیغام موفقیت",
+                text: '@Html.Raw(TempData["SuccessMessage"])',
+                icon: "success",
+                width: '28em',
+                confirmButtonText: "باشه"
+            });
+        });
+    </script>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <script>
+        $(document).ready(function () {
+            Swal.fire({
+                icon: "error",
+                width: '28em',
+                title: "خطایی رخ داده",
+                text: '@Html.Raw(TempData["ErrorMessage"])',
+                confirmButtonText: "باشه"
+            });
+        });
+    </script>
+}
+
+@if (TempData["WarningMessage"] != null)
+{
+    <script>
+        $(document).ready(function () {
+            Swal.fire({
+                title: "پیغام هشدار",
+                text: '@Html.Raw(TempData["WarningMessage"])',
+                icon: "warning",
+                width: '28em',
+                confirmButtonText: "باشه"
+            });
+        });
+    </script>
+}
+
+@if (TempData["InfoMessage"] != null)
+{
+    <script>
+        $(document).ready(function () {
+            Swal.fire({
+                icon: "info",
+                title: "پیغام",
+                width: '28em',
+                text: '@Html.Raw(TempData["InfoMessage"])',
+                confirmButtonText: "باشه"
+            });
+        });
+    </script>
+}

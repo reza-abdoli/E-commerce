@@ -1,0 +1,59 @@
+@using Application.Extensions
+@using System.Security.Claims;
+@using System.Security.Principal;
+@model Data.DTOs.Order.SubmitOrderDetailDto
+
+<form asp-area="User" asp-controller="Order" asp-action="AddProductToCart" id="addToCartForm" class="w-100">
+
+    <input type="hidden" id="ProductVariantId" asp-for="ProductVariantId">
+    <input type="hidden" asp-for="UserId"
+           value="@User.FindFirst(ClaimTypes.NameIdentifier)?.Value">
+    <input type="hidden" asp-for="ProductId">
+    <input type="hidden" id="productQuantity" asp-for="Count" value="1">
+
+    @if (User.Identity!.IsAuthenticated)
+    {
+        @* کانتر تعداد و دکمه ثبت — به صورت پیش‌فرض از همان ابتدا نمایش داده می‌شوند *@
+        <div id="qtyCounterBox" class="mb-2">
+            <div class="input-group input-group-sm mb-2">
+                <button class="btn btn-outline-secondary" type="button" onclick="changeFormQty(-1)">−</button>
+                <input type="number" id="qtyDisplayInput" class="form-control text-center" value="1" min="1" max="5">
+                <button class="btn btn-outline-secondary" type="button" onclick="changeFormQty(1)">+</button>
+            </div>
+            <button type="submit" id="confirmAddBtn" class="btn btn-danger w-100">
+                <i class="bi bi-cart-plus me-1"></i> افزودن به سبد خرید
+            </button>
+        </div>
+    }
+    else
+    {
+        <a asp-area="" asp-controller="Account" asp-action="Login" class="btn btn-danger w-100 mb-2">
+            <i class="bi bi-cart-plus me-1"></i> افزودن به سبد خرید
+        </a>
+    }
+</form>
+
+<script>
+    function changeFormQty(delta) {
+        const input = document.getElementById('qtyDisplayInput');
+        const hiddenInput = document.getElementById('productQuantity');
+        const currentVal = parseInt(input.value) || 1;
+
+        // محدود کردن مقدار بین ۱ و ۵
+        const val = Math.max(1, Math.min(5, currentVal + delta));
+        input.value = val;
+        hiddenInput.value = val;
+    }
+
+    document.getElementById('qtyDisplayInput')?.addEventListener('input', function () {
+        let val = parseInt(this.value);
+        if (isNaN(val) || val < 1) {
+            val = 1; // اگر کاربر مقدار غیرمجاز یا خالی وارد کرد، روی ۱ تنظیم می‌شود
+        }
+        if (val > 5) {
+            val = 5;
+        }
+        this.value = val;
+        document.getElementById('productQuantity').value = val;
+    });
+</script>

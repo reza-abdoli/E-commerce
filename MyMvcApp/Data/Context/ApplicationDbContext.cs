@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Data.Entities;
 using Data.Entities.Common;
+using Data.Entities.Order;
 using Data.Entities.User;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,6 +28,9 @@ namespace Data.Context
         public DbSet<ProductVariant> ProductVariant { get; set; }
 
         public DbSet<Banner> Banners { get; set; }
+        public DbSet<Order> Order { get; set; }
+        public DbSet<OrderDetail> OrderDetail { get; set; }
+        public DbSet<ProductSell> ProductSell { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -56,6 +60,9 @@ namespace Data.Context
             modelBuilder.Entity<ProductSize>().HasQueryFilter(ps => !ps.IsDeleted);
             modelBuilder.Entity<ProductVariant>().HasQueryFilter(pv => !pv.IsDeleted);
             modelBuilder.Entity<Banner>().HasQueryFilter(pv => !pv.IsDeleted);
+            modelBuilder.Entity<Order>().HasQueryFilter(pv => !pv.IsDeleted);
+            modelBuilder.Entity<OrderDetail>().HasQueryFilter(pv => !pv.IsDeleted);
+            modelBuilder.Entity<ProductSell>().HasQueryFilter(pv => !pv.IsDeleted);
 
 
         }

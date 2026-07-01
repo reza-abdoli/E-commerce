@@ -20,7 +20,7 @@
     </div>
 </div>
 
-<form asp-action="FilterProduct" method="get">
+<form asp-area="Admin" asp-controller="Product" asp-action="FilterProduct" method="get">
 
     <div id="filter-form" class="form-card" style="display:none; margin-bottom:1rem">
         <div class="form-section-title">فیلتر محصولات</div>
@@ -78,7 +78,7 @@
             <button type="submit" class="btn-blue">
                 <i class="ti ti-search"></i> جستجو
             </button>
-            <a asp-action="FilterProduct" class="btn-outline">پاک‌کردن</a>
+            <a asp-area="Admin" asp-controller="Product" asp-action="FilterProduct" class="btn-outline">پاک‌کردن</a>
         </div>
     </div>
 
@@ -112,7 +112,7 @@
                                 </div>
                             </td>
                             <td>
-                                <a asp-action="ProductDetail"
+                                <a asp-area="Admin" asp-controller="Product" asp-action="ProductDetail"
                                    asp-route-productId="@product.Id"
                                    class="txt-link">
                                     @product.Title
@@ -136,7 +136,7 @@
                             </td>
                             <td>@product.Id</td>
                             <td>
-                                <a asp-action="EditProduct"
+                                <a asp-area="Admin" asp-controller="Product" asp-action="EditProduct"
                                    asp-route-productId="@product.Id"
                                    class="badge-edit">ویرایش</a>
                                 <button type="button"

@@ -1,0 +1,563 @@
+@using Application.Extensions
+@using Data.DTOs.Product
+@using Data.Entities
+@model Data.DTOs.Product.ProductDetailDto
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<style>
+    .size-group {
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+
+    /* ─── استایل‌های اختصاصی و مدرن برای بخش گزینه‌های محصول ─── */
+
+    /* دکمه‌های رنگ سفارشی */
+    .custom-color-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50% !important;
+        border: 2px solid #e2e8f0;
+        padding: 0;
+        position: relative;
+        transition: all 0.2s ease;
+        background: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .custom-color-btn:hover {
+        transform: scale(1.08);
+        border-color: #cbd5e1;
+    }
+    .custom-color-btn .color-circle-inner {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 2px solid #fff;
+    }
+    .custom-color-btn.active-color {
+        border-color: #333333 !important;
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+    }
+    .custom-color-btn.active-color::after {
+        content: "✓";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
+        font-size: 14px;
+        font-weight: bold;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+
+    /* دکمه‌های سایز سفارشی */
+    .custom-size-btn {
+        background-color: #fff;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        padding: 0.35rem 1rem;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 8px !important;
+        transition: all 0.2s ease;
+    }
+    .custom-size-btn:hover {
+        border-color: #94a3b8;
+        background-color: #f8fafc;
+        color: #1e293b;
+    }
+    .custom-size-btn.active-size {
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+        color: #fff !important;
+        box-shadow: 0 4px 10px rgba(220, 53, 69, 0.25);
+    }
+
+    .custom-color-btn:focus, .custom-size-btn:focus {
+        box-shadow: none !important;
+        outline: none !important;
+    }
+</style>
+
+<section class="py-4">
+    <div class="container">
+
+        @* breadcrumb *@
+        <nav class="mb-3" aria-label="breadcrumb">
+            <ol class="breadcrumb font-13">
+                <li class="breadcrumb-item">
+                    <a href="/" class="text-muted text-decoration-none">خانه</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a asp-controller="Product" asp-action="FilterProducts"
+                       class="text-muted text-decoration-none">محصولات</a>
+                </li>
+                @if (Model.SelectedCategories != null && Model.SelectedCategories.Any())
+                {
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Product" asp-action="FilterProducts"
+                           asp-route-url="@Model.SelectedCategories.First().Category?.Url"
+                           class="text-muted text-decoration-none">
+                            @Model.SelectedCategories.First().Category?.Title
+                        </a>
+                    </li>
+                }
+                <li class="breadcrumb-item active text-danger">@Model.Title</li>
+            </ol>
+        </nav>
+
+        <div class="row g-4">
+
+            @* ─── گالری تصاویر ─── *@
+            <div class="col-lg-5">
+                <div class="bg-white rounded-4 border shadow-sm p-3">
+
+                    @* تصویر اصلی *@
+                    <div class="swiper product-gallery rounded-3 overflow-hidden mb-3"
+                         style="height:380px">
+                        <div class="swiper-wrapper">
+                            <div class="swiper-slide bg-light d-flex align-items-center justify-content-center">
+                                <img src="@(PathExtension.ProductImageImage + Model.MainImageName)"
+                                     alt="@Model.Title"
+                                     class="img-fluid"
+                                     style="max-height:360px;object-fit:contain">
+                            </div>
+                            @if (Model.ProductGalleries != null && Model.ProductGalleries.Any())
+                            {
+                                @foreach (var g in Model.ProductGalleries.OrderBy(g => g.Order))
+                                {
+                                    <div class="swiper-slide bg-light d-flex align-items-center justify-content-center">
+                                        <img src="@(PathExtension.ProductGalleryImage + g.ImageName)"
+                                             alt="@Model.Title"
+                                             class="img-fluid"
+                                             style="max-height:360px;object-fit:contain">
+                                    </div>
+                                }
+                            }
+                        </div>
+                        <div class="swiper-button-next"></div>
+                        <div class="swiper-button-prev"></div>
+                        <div class="swiper-pagination"></div>
+                    </div>
+
+                    @* thumbnails *@
+                    @if (Model.ProductGalleries != null && Model.ProductGalleries.Any())
+                    {
+                        <div class="swiper product-thumbs">
+                            <div class="swiper-wrapper">
+                                <div class="swiper-slide" style="width:70px">
+                                    <img src="@(PathExtension.ProductImageThumb + Model.MainImageName)"
+                                         class="rounded-2 border w-100"
+                                         style="height:64px;object-fit:cover;cursor:pointer"
+                                         alt="">
+                                </div>
+                                @foreach (var g in Model.ProductGalleries.OrderBy(x => x.Order))
+                                {
+                                    <div class="swiper-slide" style="width:70px">
+                                        <img src="@(PathExtension.ProductGalleryThumb + g.ImageName)"
+                                             class="rounded-2 border w-100"
+                                             style="height:64px;object-fit:cover;cursor:pointer"
+                                             alt="">
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* ─── اطلاعات محصول ─── *@
+            <div class="col-lg-4">
+                <div class="bg-white rounded-4 border shadow-sm p-4 h-100">
+
+                    @if (Model.ProductSelectedBrand != null)
+                    {
+                        <span class="badge bg-danger bg-opacity-10 text-danger font-12 mb-2">
+                            @Model.ProductSelectedBrand.Title
+                        </span>
+                    }
+
+                    <h5 class="fw-bold text-dark mb-3">@Model.Title</h5>
+
+                    @* دسته‌بندی‌ها *@
+                    @if (Model.SelectedCategories != null && Model.SelectedCategories.Any())
+                    {
+                        <div class="d-flex flex-wrap gap-1 mb-3">
+                            @foreach (var sc in Model.SelectedCategories)
+                            {
+                                <a asp-controller="Product"
+                                   asp-action="FilterProducts"
+                                   asp-route-url="@sc.Category?.Url"
+                                   class="badge bg-light text-muted text-decoration-none border font-12">
+                                    @sc.Category?.Title
+                                </a>
+                            }
+                        </div>
+                    }
+
+                    <hr>
+
+                    @* ─── انتخاب رنگ و سایز ─── *@
+                    @if (Model.ProductVariants != null && Model.ProductVariants.Any())
+                    {
+                        var colorGroups = Model.ProductVariants
+                            .GroupBy(v => new { v.ColorId, v.ColorTitle, v.ColorCode })
+                            .ToList();
+
+                        var firstColorGroup = colorGroups.First();
+                        var firstVariant = firstColorGroup.First();
+
+                        @* انتخاب رنگ *@
+                        <div class="mb-4">
+                            <label class="fw-bold font-13 mb-2 d-block">
+                                رنگ انتخاب شده:
+                                <span class="fw-normal text-muted" id="selected-color-name">
+                                    @firstColorGroup.Key.ColorTitle
+                                </span>
+                            </label>
+                            <div class="d-flex flex-wrap gap-3 align-items-center" id="color-options">
+                                @foreach (var colorGroup in colorGroups)
+                                {
+                                    var isFirst = colorGroup.Key.ColorId == firstColorGroup.Key.ColorId;
+                                    <button type="button"
+                                            class="btn custom-color-btn @(isFirst ? "active-color" : "")"
+                                            data-color-id="@colorGroup.Key.ColorId"
+                                            data-color-name="@colorGroup.Key.ColorTitle"
+                                            title="@colorGroup.Key.ColorTitle">
+                                        <span class="color-circle-inner" style="background-color: @colorGroup.Key.ColorCode;"></span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        @* انتخاب سایز *@
+                        <div class="mb-4">
+                            <label class="fw-bold font-13 mb-2 d-block">سایز:</label>
+                            <div id="size-options">
+                                @foreach (var colorGroup in colorGroups)
+                                {
+                                    <div class="size-group flex-wrap gap-2"
+                                         data-color-id="@colorGroup.Key.ColorId"
+                                         style="display:@(colorGroup.Key.ColorId == firstColorGroup.Key.ColorId ? "flex" : "none")">
+                                        @foreach (var v in colorGroup)
+                                        {
+                                            var isFirstSize = v.Id == firstVariant.Id;
+                                            <button type="button"
+                                                    class="btn custom-size-btn @(isFirstSize ? "active-size" : "")"
+                                                    data-variant-id="@v.Id"
+                                                    data-stock="@v.StockCount">
+                                                @v.SizeTitle
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        @* موجودی *@
+                        <div class="mb-3">
+                            <span id="stock-badge"
+                                  class="badge @(firstVariant.StockCount > 0 ? "bg-success" : "bg-danger") font-12">
+                                @(firstVariant.StockCount > 0
+                                    ? $"موجود در انبار ({firstVariant.StockCount} عدد)"
+                                    : "ناموجود")
+                            </span>
+                        </div>
+
+                        @* آیدی ورینت انتخاب‌شده — برای همگام‌سازی با فرم سبد خرید *@
+                        <input type="hidden" id="selected-variant-id" value="@firstVariant.Id">
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning font-13 py-2">
+                            موجودی برای این محصول تعریف نشده
+                        </div>
+                    }
+
+                    <hr>
+
+                    @* ویژگی‌های کوتاه *@
+                    @if (Model.ProductFeatures != null && Model.ProductFeatures.Any())
+                    {
+                        <div class="mb-3">
+                            <label class="fw-bold font-13 mb-2 d-block">ویژگی‌های کالا</label>
+                            <ul class="list-unstyled font-13">
+                                @foreach (var f in Model.ProductFeatures.Take(4).OrderBy(f => f.Order))
+                                {
+                                    <li class="d-flex gap-2 mb-1">
+                                        <i class="bi bi-check2 text-success mt-1"></i>
+                                        <span>
+                                            <strong>@f.Title:</strong> @f.Value
+                                        </span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* ─── باکس خرید ─── *@
+            <div class="col-lg-3">
+                <div class="bg-white rounded-4 border shadow-sm p-4 position-sticky"
+                     style="top:16px">
+
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-shield-check text-success fs-5"></i>
+                        <span class="font-13 text-muted">گارانتی اصالت کالا</span>
+                    </div>
+
+                    @if (Model.ProductVariants != null &&
+                         Model.ProductVariants.Any(v => v.StockCount > 0))
+                    {
+                        <div class="mb-3">
+                            <span class="font-13 text-muted">قیمت:</span>
+                            <div class="fw-bolder text-danger fs-4 mt-1">
+                                @Model.Price.ToString("N0")
+                                <span class="font-14 text-dark fw-normal">تومان</span>
+                            </div>
+                        </div>
+
+                        @* فرم افزودن به سبد خرید — partial جداگانه *@
+                        <partial name="_AddProductToOrderForm"
+                                 model="@(new Data.DTOs.Order.SubmitOrderDetailDto {
+                                     ProductId = Model.Id,
+                                     ProductVariantId = Model.ProductVariants
+                                         .First(v => v.StockCount > 0).Id
+                                 })" />
+
+                        <button class="btn btn-outline-danger w-100 btn-sm mt-2" id="favorite-btn"
+                                data-product-id="@Model.Id">
+                            <i class="bi bi-heart me-1" id="favorite-icon"></i>
+                            <span id="favorite-text">افزودن به علاقه‌مندی‌ها</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger font-13 text-center py-2 mb-3">
+                            این محصول موجود نیست
+                        </div>
+                        <button class="btn btn-outline-secondary w-100 btn-sm" disabled>
+                            <i class="bi bi-bell me-1"></i> اطلاع از موجودی
+                        </button>
+                    }
+
+                    <hr>
+
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2 font-12 text-muted">
+                            <i class="bi bi-truck text-success"></i>
+                            <span>ارسال سریع به سراسر ایران</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 font-12 text-muted">
+                            <i class="bi bi-arrow-repeat text-primary"></i>
+                            <span>۷ روز ضمانت بازگشت کالا</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 font-12 text-muted">
+                            <i class="bi bi-credit-card text-danger"></i>
+                            <span>پرداخت امن و مطمئن</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ─── تب‌های توضیحات ─── *@
+        <div class="bg-white rounded-4 border shadow-sm mt-4">
+            <ul class="nav nav-tabs border-bottom px-4 pt-3 gap-1" id="detailTabs">
+                <li class="nav-item">
+                    <button class="nav-link active fw-bold font-13"
+                            data-bs-toggle="tab" data-bs-target="#tab-desc">
+                        توضیحات
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link font-13"
+                            data-bs-toggle="tab" data-bs-target="#tab-features">
+                        مشخصات فنی
+                    </button>
+                </li>
+            </ul>
+            <div class="tab-content p-4">
+                <div class="tab-pane fade show active" id="tab-desc">
+                    @if (!string.IsNullOrEmpty(Model.ShortDescription))
+                    {
+                        <div class="font-14 text-dark lh-lg mb-3">
+                            @Html.Raw(Model.ShortDescription)
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Description))
+                    {
+                        <div class="font-13 text-muted lh-lg">
+                            @Html.Raw(Model.Description)
+                        </div>
+                    }
+                    @if (string.IsNullOrEmpty(Model.ShortDescription) &&
+                         string.IsNullOrEmpty(Model.Description))
+                    {
+                        <p class="text-muted font-13">توضیحاتی ثبت نشده است.</p>
+                    }
+                </div>
+                <div class="tab-pane fade" id="tab-features">
+                    @if (Model.ProductFeatures != null && Model.ProductFeatures.Any())
+                    {
+                        <table class="table table-bordered font-13">
+                            <tbody>
+                                @foreach (var f in Model.ProductFeatures.OrderBy(f => f.Order))
+                                {
+                                    <tr>
+                                        <td class="fw-bold bg-light" style="width:30%">@f.Title</td>
+                                        <td>@f.Value</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted font-13">مشخصات فنی ثبت نشده است.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+@section SiteFooterSection {
+    <script src="/Site/js/waitMe.min.js"></script>
+    <script>
+        // ─── گالری تصاویر ───
+        let thumbsSwiper = null;
+        if (document.querySelector('.product-thumbs')) {
+            thumbsSwiper = new Swiper('.product-thumbs', {
+                slidesPerView: 'auto',
+                spaceBetween: 8,
+                freeMode: true,
+                watchSlidesProgress: true,
+            });
+        }
+        if (document.querySelector('.product-gallery')) {
+            new Swiper('.product-gallery', {
+                loop: false,
+                navigation: {
+                    nextEl: '.product-gallery .swiper-button-next',
+                    prevEl: '.product-gallery .swiper-button-prev',
+                },
+                pagination: { el: '.product-gallery .swiper-pagination', clickable: true },
+                thumbs: thumbsSwiper ? { swiper: thumbsSwiper } : undefined,
+            });
+        }
+
+        // ─── انتخاب رنگ ───
+        document.querySelectorAll('.custom-color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.custom-color-btn').forEach(b => {
+                    b.classList.remove('active-color');
+                });
+                btn.classList.add('active-color');
+
+                document.getElementById('selected-color-name').textContent = btn.dataset.colorName;
+
+                const colorId = btn.dataset.colorId;
+                document.querySelectorAll('.size-group').forEach(g => {
+                    g.style.display = (g.dataset.colorId === colorId) ? 'flex' : 'none';
+                });
+
+                const activeGroup = document.querySelector(`.size-group[data-color-id="${colorId}"]`);
+                const firstSizeBtn = activeGroup.querySelector('.custom-size-btn');
+                selectSize(firstSizeBtn);
+            });
+        });
+
+        // ─── انتخاب سایز ───
+        document.querySelectorAll('.custom-size-btn').forEach(btn => {
+            btn.addEventListener('click', () => selectSize(btn));
+        });
+
+        function selectSize(btn) {
+            if (!btn) return;
+            const group = btn.closest('.size-group');
+
+            group.querySelectorAll('.custom-size-btn').forEach(b => {
+                b.classList.remove('active-size');
+            });
+            btn.classList.add('active-size');
+
+            const stock = parseInt(btn.dataset.stock);
+            const variantId = btn.dataset.variantId;
+
+            const badge = document.getElementById('stock-badge');
+            if (stock > 0) {
+                badge.className = 'badge bg-success font-12';
+                badge.textContent = `موجود در انبار (${stock} عدد)`;
+            } else {
+                badge.className = 'badge bg-danger font-12';
+                badge.textContent = 'ناموجود';
+            }
+
+            // sync با input قدیمی (اگه جایی دیگه استفاده میشه)
+            const oldInput = document.getElementById('selected-variant-id');
+            if (oldInput) oldInput.value = variantId;
+
+            // sync با فیلد مخفی داخل فرم سبد خرید (_AddProductToOrderForm)
+            const formVariantInput = document.getElementById('ProductVariantId');
+            if (formVariantInput) formVariantInput.value = variantId;
+        }
+
+        // ─── Wait Me Animation ───
+        function open_waiting(selector = "body") {
+            $(selector).waitMe({
+                effect: "facebook",
+                text: "لطفا صبر کنید ...",
+                bg: "rgba(255,255,255,0.7)",
+                color: "#000"
+            });
+        }
+
+        function close_waiting(selector = "body") {
+            $(selector).waitMe("hide");
+        }
+
+        // ─── افزودن به علاقه‌مندی‌ها ───
+        $(document).ready(function () {
+            const productId = $("#favorite-btn").data("product-id");
+
+            $("#favorite-btn").click(function () {
+                open_waiting();
+                $.post("/toggle-favorite-product", { productId: productId })
+                    .done(function (data) {
+                        close_waiting();
+                        if (data.isFavorite) {
+                            $("#favorite-icon").removeClass("bi-heart").addClass("bi-heart-fill text-danger");
+                            $("#favorite-text").text("افزوده شد به علاقه‌مندی‌ها");
+                        } else {
+                            $("#favorite-icon").removeClass("bi-heart-fill text-danger").addClass("bi-heart");
+                            $("#favorite-text").text("افزودن به علاقه‌مندی‌ها");
+                        }
+                    })
+                    .fail(function () {
+                        close_waiting();
+                        Swal.fire({
+                            title: "پیغام خطا",
+                            text: "برای افزودن محصول به لیست علاقمندی‌ها باید وارد حساب کاربری خود شوید.",
+                            icon: "error",
+                            width: "28em",
+                            confirmButtonText: "باشه"
+                        });
+                    });
+            });
+
+            $.get("/is-favorite", { productId: productId }, function (data) {
+                if (data.isFavorite) {
+                    $("#favorite-icon").removeClass("bi-heart").addClass("bi-heart-fill text-danger");
+                    $("#favorite-text").text("افزوده شد به علاقه‌مندی‌ها");
+                }
+            });
+        });
+    </script>
+}

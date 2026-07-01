@@ -76,9 +76,10 @@ public class AccountController : SiteBaseController
         await HttpContext.SignInAsync(principal, properties);
 
         TempData[SuccessMessage] = "You logged in successfully.";
-        if(user.Role == "Admin")
+        if (user.Role == "Admin")
             return RedirectToAction("Dashboard", "Home", new { area = "Admin" });
-        
+
+        // return RedirectToAction("Index", "Home", new { area = "User" });
         return RedirectToAction("Index", "Home", new { area = "" });
     }
 

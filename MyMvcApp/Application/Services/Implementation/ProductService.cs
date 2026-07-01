@@ -438,13 +438,6 @@ public class ProductService : IProductService
             ProductFeatures = await _productFeatureRepository.GetQuery().Where(d => d.ProductId == productId).ToListAsync(),
         };
 
-        // var selectedBrand =
-        //     await _selectedBrandRepository.GetQuery().FirstOrDefaultAsync(b => b.ProductId == productId);
-        // if (selectedBrand != null)
-        // {
-        //     model.ProductSelectedBrand = selectedBrand.Brand;
-        // }
-
         return model;
     }
 
