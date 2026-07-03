@@ -19,19 +19,17 @@ namespace Application.Services.Implementation
         private readonly IRepository<OrderDetail> _orderDetailRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<ProductVariant> _variantRepository;
-        // private readonly IRepository<PaymentRecord> _recordRepository;
         private readonly IRepository<ProductSell> _productSellRepository;
 
-
-        public OrderService(IRepository<User> userRepository, IRepository<Order> orderRepository, IRepository<OrderDetail> orderDetailRepository, IRepository<Product> productRepository
-        , IRepository<ProductVariant> variantRepository, IRepository<ProductSell> productSellRepository)
+        public OrderService(IRepository<User> userRepository, IRepository<Order> orderRepository,
+            IRepository<OrderDetail> orderDetailRepository, IRepository<Product> productRepository,
+            IRepository<ProductVariant> variantRepository, IRepository<ProductSell> productSellRepository)
         {
             _userRepository = userRepository;
             _orderRepository = orderRepository;
             _orderDetailRepository = orderDetailRepository;
             _productRepository = productRepository;
             _variantRepository = variantRepository;
-            // _recordRepository = recordRepository;
             _productSellRepository = productSellRepository;
         }
 
@@ -42,22 +40,29 @@ namespace Application.Services.Implementation
             await _orderRepository.DisposeAsync();
             await _productRepository.DisposeAsync();
             await _variantRepository.DisposeAsync();
-            // await _recordRepository.DisposeAsync();
             await _productSellRepository.DisposeAsync();
         }
 
-
-        public async Task AddProductToOrder(SubmitOrderDetailDto dto)
+        // ─── تغییر: حالا orderDetailId برمیگرده ───
+        public async Task<long> AddProductToOrder(SubmitOrderDetailDto dto)
         {
             var orderId = await this.GetOrCreateOrderForUser(dto.UserId);
+            var variantCount = await _variantRepository.GetQuery().Where(v => v.Id == dto.ProductVariantId)
+            .Select(v => v.StockCount).SingleOrDefaultAsync();
+
+            if (!(variantCount > 0))
+                return 0;
+
             if (await CheckOrderDetailExists(dto.UserId, dto.ProductVariantId))
             {
                 var orderDetail = await _orderDetailRepository.GetQuery()
-                .Where(o => o.OrderId == orderId && o.ProductVariantId == dto.ProductVariantId)
-                .SingleOrDefaultAsync();
-                orderDetail.Count += dto.Count;
+                    .Where(o => o.OrderId == orderId && o.ProductVariantId == dto.ProductVariantId)
+                    .SingleOrDefaultAsync();
+
+                orderDetail.Count = 1;
                 _orderDetailRepository.UpdateEntity(orderDetail);
                 await _orderDetailRepository.SaveChanges();
+                return orderDetail.Id;
             }
             else
             {
@@ -67,30 +72,30 @@ namespace Application.Services.Implementation
                     OrderId = orderId,
                     ProductVariantId = dto.ProductVariantId,
                     ProductPrice = product.Price,
-                    Count = dto.Count,
-                    TotalPrice = dto.Count * product.Price
+                    Count = 1,
+                    TotalPrice = product.Price
                 };
                 await _orderDetailRepository.AddEntity(newOrderDetail);
                 await _orderDetailRepository.SaveChanges();
+                return newOrderDetail.Id;
             }
-
         }
 
         public async Task<bool> CheckOrderDetailExists(long userId, long productVariantId)
         {
             return await _orderRepository.GetQuery().Include(o => o.OrderDetails)
-            .Where(o => o.UserId == userId)
-            .AnyAsync(o => o.OrderDetails.Any(od => od.ProductVariantId == productVariantId));
+                .Where(o => o.UserId == userId)
+                .AnyAsync(o => o.OrderDetails.Any(od => od.ProductVariantId == productVariantId));
         }
+
         public async Task<long> GetOrCreateOrderForUser(long userId)
         {
             var order = await _orderRepository.GetQuery()
-            .Where(o => o.UserId == userId && o.OrderState == OrderState.Open)
-            .FirstOrDefaultAsync();
-            if (order != null)
-            {
-                return order.Id;
-            }
+                .Where(o => o.UserId == userId && o.OrderState == OrderState.Open)
+                .FirstOrDefaultAsync();
+
+            if (order != null) return order.Id;
+
             var newOrder = new Order
             {
                 UserId = userId,
@@ -102,7 +107,7 @@ namespace Application.Services.Implementation
             return newOrder.Id;
         }
 
-        public async Task ChangeOrderDetailCount(long orderDetailId, int count)
+        public async Task<bool> ChangeOrderDetailCount(long orderDetailId, int count)
         {
             var orderDetail = await _orderDetailRepository.GetEntityById(orderDetailId);
 
@@ -113,10 +118,30 @@ namespace Application.Services.Implementation
             }
             else
             {
+                var variantCount = await _orderDetailRepository.GetQuery().Include(o=> o.ProductVariant)
+                .Where(o => o.Id == orderDetailId)
+                .Select(o => o.ProductVariant.StockCount).SingleOrDefaultAsync();
+                if(variantCount < count) 
+                    return false;
                 orderDetail.Count = count;
                 _orderDetailRepository.UpdateEntity(orderDetail);
                 await _orderDetailRepository.SaveChanges();
             }
+            return true;;
+        }
+
+        public async Task<OrderDetail?> GetCartItemForVariant(long userId, long productVariantId)
+        {
+            var order = await _orderRepository.GetQuery()
+                .Where(o => o.UserId == userId && o.OrderState == OrderState.Open)
+                .FirstOrDefaultAsync();
+            if (order == null) return null;
+
+            var detail = await _orderDetailRepository.GetQuery()
+                .Where(d => d.OrderId == order.Id && d.ProductVariantId == productVariantId)
+                .FirstOrDefaultAsync();
+
+            return detail == null ? null : detail;
         }
 
         public async Task<OpenOrderDto?> UserOpenOrderDetail(long userId)
@@ -135,6 +160,5 @@ namespace Application.Services.Implementation
                     .Where(d => d.OrderId == order.Id).ToListAsync()
             };
         }
-
     }
 }

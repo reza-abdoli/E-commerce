@@ -1,59 +1,176 @@
-@using Application.Extensions
-@using System.Security.Claims;
-@using System.Security.Principal;
+@using System.Security.Claims
 @model Data.DTOs.Order.SubmitOrderDetailDto
 
-<form asp-area="User" asp-controller="Order" asp-action="AddProductToCart" id="addToCartForm" class="w-100">
+@{
+    var addUrl    = Url.Action("AddProductToCart",        "Order", new { area = "User" });
+    var changeUrl = Url.Action("ChangeOrderDetailCount",  "Order", new { area = "User" });
+    var infoUrl   = Url.Action("CartVariantInfo",         "Order", new { area = "User" });
+}
 
-    <input type="hidden" id="ProductVariantId" asp-for="ProductVariantId">
-    <input type="hidden" asp-for="UserId"
-           value="@User.FindFirst(ClaimTypes.NameIdentifier)?.Value">
-    <input type="hidden" asp-for="ProductId">
-    <input type="hidden" id="productQuantity" asp-for="Count" value="1">
+@Html.AntiForgeryToken()
 
-    @if (User.Identity!.IsAuthenticated)
-    {
-        @* کانتر تعداد و دکمه ثبت — به صورت پیش‌فرض از همان ابتدا نمایش داده می‌شوند *@
-        <div id="qtyCounterBox" class="mb-2">
-            <div class="input-group input-group-sm mb-2">
-                <button class="btn btn-outline-secondary" type="button" onclick="changeFormQty(-1)">−</button>
-                <input type="number" id="qtyDisplayInput" class="form-control text-center" value="1" min="1" max="5">
-                <button class="btn btn-outline-secondary" type="button" onclick="changeFormQty(1)">+</button>
-            </div>
-            <button type="submit" id="confirmAddBtn" class="btn btn-danger w-100">
-                <i class="bi bi-cart-plus me-1"></i> افزودن به سبد خرید
-            </button>
-        </div>
-    }
-    else
-    {
-        <a asp-area="" asp-controller="Account" asp-action="Login" class="btn btn-danger w-100 mb-2">
+<input type="hidden" id="cart-product-id"  value="@Model.ProductId">
+<input type="hidden" id="cart-add-url"     value="@addUrl">
+<input type="hidden" id="cart-change-url"  value="@changeUrl">
+<input type="hidden" id="cart-info-url"    value="@infoUrl">
+<input type="hidden" id="ProductVariantId" value="@Model.ProductVariantId">
+
+@if (User.Identity!.IsAuthenticated)
+{
+    <div id="add-to-cart-wrap">
+        <button type="button" id="addToCartBtn" class="btn btn-danger w-100 mb-2"
+                onclick="cartAdd()">
             <i class="bi bi-cart-plus me-1"></i> افزودن به سبد خرید
-        </a>
-    }
-</form>
+        </button>
+    </div>
+
+    <div id="qty-counter-wrap" class="d-none mb-2">
+        <div class="d-flex align-items-center justify-content-between
+                    border rounded-3 px-3 py-2 bg-light">
+            <button type="button" class="btn btn-sm btn-outline-secondary px-3"
+                    onclick="cartChange(-1)">−</button>
+            <span id="cart-qty-display" class="fw-bold fs-5">1</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary px-3"
+                    onclick="cartChange(1)">+</button>
+        </div>
+    </div>
+
+    @* پیام خطا — پنهان تا زمانی که لازم بشه *@
+    <div id="cart-error-msg" class="alert alert-warning font-13 py-2 mt-2 d-none" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        <span id="cart-error-text"></span>
+    </div>
+}
+else
+{
+    <a asp-area="" asp-controller="Account" asp-action="Login"
+       class="btn btn-danger w-100 mb-2">
+        <i class="bi bi-cart-plus me-1"></i> افزودن به سبد خرید
+    </a>
+}
 
 <script>
-    function changeFormQty(delta) {
-        const input = document.getElementById('qtyDisplayInput');
-        const hiddenInput = document.getElementById('productQuantity');
-        const currentVal = parseInt(input.value) || 1;
+(function () {
+    let _orderDetailId = null;
+    let _count = 0;
 
-        // محدود کردن مقدار بین ۱ و ۵
-        const val = Math.max(1, Math.min(5, currentVal + delta));
-        input.value = val;
-        hiddenInput.value = val;
+    const token = () =>
+        document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+    async function post(url, body) {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': token()
+            },
+            body: new URLSearchParams(body).toString()
+        });
+        return res.json();
     }
 
-    document.getElementById('qtyDisplayInput')?.addEventListener('input', function () {
-        let val = parseInt(this.value);
-        if (isNaN(val) || val < 1) {
-            val = 1; // اگر کاربر مقدار غیرمجاز یا خالی وارد کرد، روی ۱ تنظیم می‌شود
+    function showError(msg) {
+        const box  = document.getElementById('cart-error-msg');
+        const text = document.getElementById('cart-error-text');
+        if (!box || !text) return;
+        text.textContent = msg;
+        box.classList.remove('d-none');
+        // بعد از ۴ ثانیه خودکار پنهان بشه
+        setTimeout(() => box.classList.add('d-none'), 4000);
+    }
+
+    function hideError() {
+        document.getElementById('cart-error-msg')?.classList.add('d-none');
+    }
+
+    async function checkCartState(variantId) {
+        const infoUrl = document.getElementById('cart-info-url').value;
+        try {
+            const data = await fetch(`${infoUrl}?productVariantId=${variantId}`).then(r => r.json());
+            if (data && data.count > 0) {
+                _orderDetailId = data.orderDetailId;
+                _count = data.count;
+                showCounter();
+            } else {
+                _orderDetailId = null;
+                _count = 0;
+                showAddButton();
+            }
+        } catch {
+            showAddButton();
         }
-        if (val > 5) {
-            val = 5;
+        hideError();
+    }
+
+    // ─── افزودن به سبد ───
+    window.cartAdd = async function () {
+        const productId = document.getElementById('cart-product-id').value;
+        const variantId = document.getElementById('ProductVariantId').value;
+        const addUrl    = document.getElementById('cart-add-url').value;
+
+        const btn = document.getElementById('addToCartBtn');
+        btn.disabled = true;
+        try {
+            const data = await post(addUrl, { ProductId: productId, ProductVariantId: variantId });
+
+            // سرویس وقتی موجودی نداره orderDetailId=0 برمیگردونه
+            if (data.success && data.orderDetailId > 0) {
+                _orderDetailId = data.orderDetailId;
+                _count = 1;
+                hideError();
+                showCounter();
+            } else {
+                showError('این محصول در حال حاضر موجود نیست.');
+            }
+        } catch {
+            showError('خطا در ارتباط با سرور. لطفاً دوباره امتحان کنید.');
+        } finally {
+            btn.disabled = false;
         }
-        this.value = val;
-        document.getElementById('productQuantity').value = val;
-    });
+    };
+
+    // ─── تغییر تعداد ───
+    window.cartChange = async function (delta) {
+        const newCount  = _count + delta;
+        const changeUrl = document.getElementById('cart-change-url').value;
+
+        if (newCount < 1) {
+            // حذف از سبد
+            await post(changeUrl, { orderDetailId: _orderDetailId, newCount: 0 });
+            _orderDetailId = null;
+            _count = 0;
+            hideError();
+            showAddButton();
+            return;
+        }
+
+        const data = await post(changeUrl, { orderDetailId: _orderDetailId, newCount });
+        if (data.success) {
+            _count = newCount;
+            document.getElementById('cart-qty-display').textContent = _count;
+            hideError();
+        } else {
+            // سرویس false برگردوند یعنی newCount از موجودی انبار بیشتره
+            showError(`حداکثر تعداد قابل سفارش ${_count} عدد است.`);
+        }
+    };
+
+    window.cartCheckVariant = function (variantId) {
+        checkCartState(variantId);
+    };
+
+    function showCounter() {
+        document.getElementById('add-to-cart-wrap').classList.add('d-none');
+        document.getElementById('qty-counter-wrap').classList.remove('d-none');
+        document.getElementById('cart-qty-display').textContent = _count;
+    }
+
+    function showAddButton() {
+        document.getElementById('qty-counter-wrap').classList.add('d-none');
+        document.getElementById('add-to-cart-wrap').classList.remove('d-none');
+    }
+
+    const initialVariantId = document.getElementById('ProductVariantId').value;
+    if (initialVariantId) checkCartState(initialVariantId);
+})();
 </script>

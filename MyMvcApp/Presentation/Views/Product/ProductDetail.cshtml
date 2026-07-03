@@ -435,10 +435,8 @@
         let thumbsSwiper = null;
         if (document.querySelector('.product-thumbs')) {
             thumbsSwiper = new Swiper('.product-thumbs', {
-                slidesPerView: 'auto',
-                spaceBetween: 8,
-                freeMode: true,
-                watchSlidesProgress: true,
+                slidesPerView: 'auto', spaceBetween: 8,
+                freeMode: true, watchSlidesProgress: true,
             });
         }
         if (document.querySelector('.product-gallery')) {
@@ -460,7 +458,6 @@
                     b.classList.remove('active-color');
                 });
                 btn.classList.add('active-color');
-
                 document.getElementById('selected-color-name').textContent = btn.dataset.colorName;
 
                 const colorId = btn.dataset.colorId;
@@ -469,8 +466,7 @@
                 });
 
                 const activeGroup = document.querySelector(`.size-group[data-color-id="${colorId}"]`);
-                const firstSizeBtn = activeGroup.querySelector('.custom-size-btn');
-                selectSize(firstSizeBtn);
+                selectSize(activeGroup?.querySelector('.custom-size-btn'));
             });
         });
 
@@ -483,13 +479,13 @@
             if (!btn) return;
             const group = btn.closest('.size-group');
 
-            group.querySelectorAll('.custom-size-btn').forEach(b => {
-                b.classList.remove('active-size');
-            });
+            group.querySelectorAll('.custom-size-btn').forEach(b => b.classList.remove('active-size'));
             btn.classList.add('active-size');
 
-            const stock = parseInt(btn.dataset.stock);
-            const variantId = btn.dataset.variantId;
+            const variantId = btn.dataset.variantId;   // ← فقط یک بار
+            const stock     = parseInt(btn.dataset.stock);
+
+            if (typeof cartCheckVariant === 'function') cartCheckVariant(variantId);
 
             const badge = document.getElementById('stock-badge');
             if (stock > 0) {
@@ -500,36 +496,26 @@
                 badge.textContent = 'ناموجود';
             }
 
-            // sync با input قدیمی (اگه جایی دیگه استفاده میشه)
             const oldInput = document.getElementById('selected-variant-id');
             if (oldInput) oldInput.value = variantId;
 
-            // sync با فیلد مخفی داخل فرم سبد خرید (_AddProductToOrderForm)
             const formVariantInput = document.getElementById('ProductVariantId');
             if (formVariantInput) formVariantInput.value = variantId;
         }
 
-        // ─── Wait Me Animation ───
+        // ─── Wait Me ───
         function open_waiting(selector = "body") {
-            $(selector).waitMe({
-                effect: "facebook",
-                text: "لطفا صبر کنید ...",
-                bg: "rgba(255,255,255,0.7)",
-                color: "#000"
-            });
+            $(selector).waitMe({ effect: "facebook", text: "لطفا صبر کنید ...",
+                bg: "rgba(255,255,255,0.7)", color: "#000" });
         }
+        function close_waiting(selector = "body") { $(selector).waitMe("hide"); }
 
-        function close_waiting(selector = "body") {
-            $(selector).waitMe("hide");
-        }
-
-        // ─── افزودن به علاقه‌مندی‌ها ───
+        // ─── علاقه‌مندی‌ها ───
         $(document).ready(function () {
             const productId = $("#favorite-btn").data("product-id");
-
             $("#favorite-btn").click(function () {
                 open_waiting();
-                $.post("/toggle-favorite-product", { productId: productId })
+                $.post("/toggle-favorite-product", { productId })
                     .done(function (data) {
                         close_waiting();
                         if (data.isFavorite) {
@@ -542,17 +528,12 @@
                     })
                     .fail(function () {
                         close_waiting();
-                        Swal.fire({
-                            title: "پیغام خطا",
+                        Swal.fire({ title: "پیغام خطا",
                             text: "برای افزودن محصول به لیست علاقمندی‌ها باید وارد حساب کاربری خود شوید.",
-                            icon: "error",
-                            width: "28em",
-                            confirmButtonText: "باشه"
-                        });
+                            icon: "error", width: "28em", confirmButtonText: "باشه" });
                     });
             });
-
-            $.get("/is-favorite", { productId: productId }, function (data) {
+            $.get("/is-favorite", { productId }, function (data) {
                 if (data.isFavorite) {
                     $("#favorite-icon").removeClass("bi-heart").addClass("bi-heart-fill text-danger");
                     $("#favorite-text").text("افزوده شد به علاقه‌مندی‌ها");
