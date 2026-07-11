@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600&display=swap');
+
+/* ─── Reset & Base ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --font-main: 'Vazirmatn', system-ui, sans-serif;
+
+  /* Palette */
+  --bg-sidebar:       #0d1117;
+  --bg-sidebar-hover: #161b22;
+  --bg-sidebar-active:#1c2333;
+  --border-sidebar:   #21262d;
+  --text-sidebar:     #8b949e;
+  --text-sidebar-h:   #c9d1d9;
+  --text-sidebar-a:   #f0f6fc;
+  --accent-green:     #3fb950;
+  --accent-green-d:   #2ea043;
+
+  --bg-main:    #f4f6f9;
+  --bg-white:   #ffffff;
+  --bg-row-h:   #f8fafc;
+  --border:     #e2e8f0;
+  --border-mid: #cbd5e1;
+
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+  --text-link:      #2563eb;
+
+  --btn-green:    #16a34a;
+  --btn-green-h:  #15803d;
+  --btn-blue:     #2563eb;
+  --btn-blue-h:   #1d4ed8;
+
+  --badge-edit-bg:    #fef3c7;
+  --badge-edit-text:  #92400e;
+  --badge-edit-h:     #fde68a;
+  --badge-del-bg:     #fee2e2;
+  --badge-del-text:   #991b1b;
+  --badge-del-h:      #fecaca;
+
+  --alert-ok-bg:      #f0fdf4;
+  --alert-ok-text:    #15803d;
+  --alert-ok-border:  #bbf7d0;
+
+  --radius-sm:  4px;
+  --radius-md:  6px;
+  --radius-lg:  8px;
+  --radius-xl:  10px;
+
+  --transition: 0.15s ease;
+}
+
+body {
+  font-family: var(--font-main);
+  font-size: 14px;
+  direction: rtl;
+  color: var(--text-primary);
+  background: var(--bg-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+}

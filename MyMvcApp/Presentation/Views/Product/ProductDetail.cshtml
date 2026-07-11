@@ -314,7 +314,7 @@
                     @if (Model.ProductVariants != null &&
                          Model.ProductVariants.Any(v => v.StockCount > 0))
                     {
-                        <div class="mb-3">
+                        <div class="mb-3" id="price-wrap">
                             <span class="font-13 text-muted">قیمت:</span>
                             <div class="fw-bolder text-danger fs-4 mt-1">
                                 @Model.Price.ToString("N0")
@@ -485,7 +485,7 @@
             const variantId = btn.dataset.variantId;   // ← فقط یک بار
             const stock     = parseInt(btn.dataset.stock);
 
-            if (typeof cartCheckVariant === 'function') cartCheckVariant(variantId);
+            if (typeof cartCheckVariant === 'function') cartCheckVariant(variantId, stock);
 
             const badge = document.getElementById('stock-badge');
             if (stock > 0) {

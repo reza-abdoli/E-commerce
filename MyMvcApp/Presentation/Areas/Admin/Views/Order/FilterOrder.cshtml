@@ -1,0 +1,156 @@
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@model Data.DTOs.Order.FilterOrderDto
+@{
+    ViewData["Title"] = "مدیریت سفارش‌ها";
+
+    string StateLabel(Data.DTOs.Order.FilterOrderState state) =>
+        state.GetType().GetField(state.ToString())
+            ?.GetCustomAttribute<DisplayAttribute>()?.Name ?? state.ToString();
+
+    string OrderStateLabel(Data.Entities.Order.OrderState state) =>
+        state switch {
+            Data.Entities.Order.OrderState.Open     => "ثبت شده",
+            Data.Entities.Order.OrderState.Paid     => "پرداخت شده",
+            Data.Entities.Order.OrderState.Pending  => "در حال پردازش",
+            Data.Entities.Order.OrderState.Sent     => "ارسال شده",
+            Data.Entities.Order.OrderState.Canceled => "لغو شده",
+            Data.Entities.Order.OrderState.Returned => "مرجوع شده",
+            _ => state.ToString()
+        };
+
+    string StateBadge(Data.Entities.Order.OrderState state) =>
+        state switch {
+            Data.Entities.Order.OrderState.Open     => "bg-secondary",
+            Data.Entities.Order.OrderState.Paid     => "bg-success",
+            Data.Entities.Order.OrderState.Pending  => "bg-warning text-dark",
+            Data.Entities.Order.OrderState.Sent     => "bg-primary",
+            Data.Entities.Order.OrderState.Canceled => "bg-danger",
+            Data.Entities.Order.OrderState.Returned => "bg-info text-dark",
+            _ => "bg-secondary"
+        };
+}
+@* @section AdminHeaderSection
+{
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+} *@
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0">
+        <i class="bi bi-receipt-cutoff text-danger me-2"></i>مدیریت سفارش‌ها
+    </h5>
+    <span class="badge bg-light text-dark border font-13">
+        @(Model.Data?.Count ?? 0) سفارش
+    </span>
+</div>
+
+@* ─── فرم فیلتر ─── *@
+<form asp-action="FilterOrder" method="get" class="bg-white rounded-4 border shadow-sm p-4 mb-4">
+    <div class="row g-3">
+
+        <div class="col-md-3">
+            <label class="form-label fw-bold font-13">نام گیرنده</label>
+            <input asp-for="UserName" class="form-control form-control-sm"
+                   placeholder="جستجو در نام...">
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label fw-bold font-13">شهر مقصد</label>
+            <input asp-for="DestinationCity" class="form-control form-control-sm"
+                   placeholder="شهر...">
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label fw-bold font-13">کد تراکنش</label>
+            <input asp-for="TransactionId" type="number" class="form-control form-control-sm"
+                   placeholder="شماره...">
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label fw-bold font-13">حداقل مبلغ (تومان)</label>
+            <input asp-for="MinimumPrice" type="number" class="form-control form-control-sm"
+                   placeholder="مثلاً 500000">
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label fw-bold font-13">وضعیت سفارش</label>
+            <select asp-for="FilterOrderState" class="form-select form-select-sm">
+                @foreach (var state in Enum.GetValues<Data.DTOs.Order.FilterOrderState>())
+                {
+                    <option value="@state">@StateLabel(state)</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+            <button type="submit" class="btn btn-danger btn-sm px-4">
+                <i class="bi bi-search me-1"></i> جستجو
+            </button>
+            <a asp-action="FilterOrder" class="btn btn-outline-secondary btn-sm px-3">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> پاک‌کردن
+            </a>
+        </div>
+    </div>
+</form>
+
+@* ─── جدول سفارش‌ها ─── *@
+@if (Model.Data == null || !Model.Data.Any())
+{
+    <div class="bg-white rounded-4 border shadow-sm p-5 text-center">
+        <i class="bi bi-inbox text-muted" style="font-size:3rem"></i>
+        <p class="text-muted mt-3 font-13">سفارشی با این مشخصات یافت نشد.</p>
+    </div>
+}
+else
+{
+    <div class="bg-white rounded-4 border shadow-sm overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 font-13 align-middle">
+                <thead class="bg-light border-bottom">
+                    <tr>
+                        <th class="px-4 py-3">#</th>
+                        <th class="py-3">گیرنده</th>
+                        <th class="py-3">شهر</th>
+                        <th class="py-3">مبلغ (تومان)</th>
+                        <th class="py-3">تعداد اقلام</th>
+                        <th class="py-3">وضعیت</th>
+                        <th class="py-3">تاریخ ثبت</th>
+                        <th class="py-3 text-center">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model.Data)
+                    {
+                        <tr>
+                            <td class="px-4 fw-bold text-muted">@order.Id</td>
+                            <td>@(order.UserName ?? "—")</td>
+                            <td>@(order.DestinationCity ?? "—")</td>
+                            <td class="fw-bold text-danger">
+                                @order.TotalPrice.ToString("N0")
+                            </td>
+                            <td>
+                                @(order.OrderDetails?.Sum(d => d.Count) ?? 0) عدد
+                            </td>
+                            <td>
+                                <span class="badge @StateBadge(order.OrderState)">
+                                    @OrderStateLabel(order.OrderState)
+                                </span>
+                            </td>
+                            <td class="text-muted">
+                                @order.CreatedAt.ToString("yyyy/MM/dd")
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="OrderDetail"
+                                   asp-route-orderId="@order.Id"
+                                   class="btn btn-sm btn-outline-primary px-3">
+                                    <i class="bi bi-eye me-1"></i> جزئیات
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

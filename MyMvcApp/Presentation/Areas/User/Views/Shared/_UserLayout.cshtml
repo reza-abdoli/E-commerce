@@ -1,0 +1,23 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <partial name="_UserMetaTags" />
+    <partial name="_UserHeaderRef" />
+    @RenderSection("UserHeaderSection", false)
+    <title>@ViewData["Title"]</title>
+</head>
+
+<body>
+
+    <partial name="_UserSidebar" />
+
+    @RenderBody()
+
+    <partial name="_UserFooterRef" />
+    <partial name="_UserMessages" />
+    @RenderSection("UserFooterSection", false)
+
+</body>
+
+</html>

@@ -4,7 +4,7 @@ namespace MyMvcApp.Areas.Admin.Controllers
 {
     public class HomeController : AdminBaseController
     {
-        public IActionResult Dashboard()
+        public IActionResult Index()
         {
             return View();
         }

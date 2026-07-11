@@ -1,0 +1,219 @@
+@using Application.Extensions
+@model Data.DTOs.Order.OpenOrderDto
+@{
+    ViewData["Title"] = "بررسی نهایی سفارش";
+    var user = ViewData["User"] as Data.Entities.User.User;
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+            body {
+                font-family: 'Vazirmatn', sans-serif;
+                background: #f8fafc;
+            }
+
+            .font-12 {
+                font-size: 12px;
+            }
+
+            .font-13 {
+                font-size: 13px;
+            }
+
+            .font-14 {
+                font-size: 14px;
+            }
+    </style>
+</head>
+
+<body>
+
+    @* ─── هدر ساده ─── *@
+    <nav class="navbar bg-white border-bottom shadow-sm px-4 py-3 mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
+                <i class="bi bi-bag-heart-fill text-danger fs-5"></i>
+                <span class="fw-bold text-dark font-14">فروشگاه</span>
+            </a>
+            <div class="d-flex align-items-center gap-2 font-12 text-muted">
+                <i class="bi bi-shield-lock text-success"></i>
+                <span>پرداخت امن</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+
+        <h5 class="fw-bold mb-4">
+            <i class="bi bi-bag-check me-2 text-danger"></i>بررسی نهایی سفارش
+        </h5>
+
+        @* ─── نوار مراحل ─── *@
+        <div class="d-flex align-items-center gap-2 mb-4 font-12">
+            <span class="badge bg-success rounded-pill px-3 py-2">
+                <i class="bi bi-cart-check me-1"></i> سبد خرید
+            </span>
+            <i class="bi bi-chevron-left text-muted"></i>
+            <span class="badge bg-danger rounded-pill px-3 py-2">
+                <i class="bi bi-clipboard-check me-1"></i> بررسی نهایی
+            </span>
+            <i class="bi bi-chevron-left text-muted"></i>
+            <span class="badge bg-light text-muted rounded-pill px-3 py-2 border">
+                <i class="bi bi-credit-card me-1"></i> پرداخت
+            </span>
+        </div>
+
+        <div class="row g-4">
+
+            @* ─── ستون چپ ─── *@
+            <div class="col-lg-8">
+
+                @* اطلاعات گیرنده *@
+                <div class="bg-white rounded-4 border shadow-sm p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">
+                            <i class="bi bi-person-check me-1 text-danger"></i> اطلاعات گیرنده
+                        </h6>
+                        <a asp-area="User" asp-controller="Account" asp-action="EditUserDetail"
+                           asp-route-returnToCheckout="true" class="btn btn-outline-secondary btn-sm font-12">
+                            <i class="bi bi-pencil me-1"></i> ویرایش
+                        </a>
+                    </div>
+                    <div class="row g-3 font-13">
+                        <div class="col-sm-6">
+                            <span class="text-muted">نام و نام خانوادگی:</span>
+                            <span class="fw-bold me-1">@user?.FullName</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted">شماره تماس:</span>
+                            <span class="fw-bold me-1">@user?.MobileNumber</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted">شهر:</span>
+                            <span class="fw-bold me-1">@user?.UserCity</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted">کد پستی:</span>
+                            <span class="fw-bold me-1">@user?.PostCode</span>
+                        </div>
+                        <div class="col-12">
+                            <span class="text-muted">آدرس:</span>
+                            <span class="fw-bold me-1">@user?.Address</span>
+                        </div>
+                    </div>
+                </div>
+
+                @* اقلام سفارش *@
+                <div class="bg-white rounded-4 border shadow-sm p-4">
+                    <h6 class="fw-bold mb-3">
+                        <i class="bi bi-box-seam me-1 text-danger"></i>
+                        اقلام سفارش
+                        <span class="text-muted fw-normal font-12">(@Model.OrderDetails.Count محصول)</span>
+                    </h6>
+
+                    @foreach (var item in Model.OrderDetails)
+                    {
+                        var product = item.ProductVariant.Product;
+                        var variant = item.ProductVariant;
+                        <div class="d-flex gap-3 align-items-center py-3
+                            @(item != Model.OrderDetails.Last() ? "border-bottom" : "")">
+                            <img src="@(PathExtension.ProductImageThumb + product.MainImageName)" alt="@product.Title"
+                                 class="rounded-3 border flex-shrink-0" style="width:64px;height:64px;object-fit:cover">
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-bold font-13 text-truncate mb-1">@product.Title</div>
+                                <div class="font-12 text-muted d-flex flex-wrap gap-2">
+                                    <span>
+                                        <span class="d-inline-block rounded-circle border me-1"
+                                              style="width:9px;height:9px;background:@variant.ColorCode;vertical-align:middle"></span>
+                                        @variant.ColorTitle
+                                    </span>
+                                    <span>سایز: @variant.SizeTitle</span>
+                                    <span>تعداد: @item.Count</span>
+                                </div>
+                            </div>
+                            <div class="text-end flex-shrink-0">
+                                <div class="fw-bold text-danger font-13">
+                                    @((product.Price * item.Count).ToString("N0"))
+                                </div>
+                                <div class="font-12 text-muted">تومان</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* ─── ستون راست ─── *@
+            <div class="col-lg-4">
+                <div class="bg-white rounded-4 border shadow-sm p-4 position-sticky" style="top:16px">
+                    <h6 class="fw-bold mb-3">خلاصه پرداخت</h6>
+                    <hr>
+                    <div class="d-flex justify-content-between font-13 mb-2">
+                        <span class="text-muted">تعداد اقلام:</span>
+                        <span>@Model.OrderDetails.Sum(x => x.Count) عدد</span>
+                    </div>
+                    <div class="d-flex justify-content-between font-13 mb-2">
+                        <span class="text-muted">هزینه ارسال:</span>
+                        <span class="text-success">رایگان</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="fw-bold font-13">مبلغ قابل پرداخت:</span>
+                        <div class="text-end">
+                            <div class="fw-bold text-danger fs-5">
+                                @Model.TotalCartPrice().ToString("N0")
+                            </div>
+                            <div class="font-12 text-muted">تومان</div>
+                        </div>
+                    </div>
+
+                    <form asp-area="User" asp-controller="Payment" asp-action="PayOrder" method="get">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger w-100 mb-2">
+                            <i class="bi bi-credit-card me-1"></i> پرداخت آنلاین
+                        </button>
+                    </form>
+
+                    <a asp-area="User" asp-controller="Order" asp-action="Cart"
+                       class="btn btn-outline-secondary w-100 btn-sm">
+                        <i class="bi bi-arrow-right me-1"></i> بازگشت به سبد خرید
+                    </a>
+
+                    <hr>
+                    <div class="d-flex flex-column gap-2 font-12 text-muted">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-lock text-success"></i>
+                            <span>پرداخت امن و رمزگذاری‌شده</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-truck text-primary"></i>
+                            <span>ارسال به سراسر ایران</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-arrow-repeat text-warning"></i>
+                            <span>۷ روز ضمانت بازگشت کالا</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <partial name="_UserFooterRef" />
+    <partial name="_UserMessages" />
+</body>
+
+</html>

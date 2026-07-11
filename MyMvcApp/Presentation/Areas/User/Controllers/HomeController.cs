@@ -17,13 +17,13 @@ namespace Presentation.Areas.User.Controllers
             _userService = userService;
         }
 
-        // public async Task<IActionResult> Index()
-        // {
-        //     string username = User.Claims
-        //         .SingleOrDefault(s => s.Type == ClaimTypes.Name)
-        //         !.Value;
-        //     var model = await _userService.GetUserByUsername(username);
-        //     return View(model);
-        // }
+        public async Task<IActionResult> Index()
+        {
+            // string username = User.Claims
+            //     .SingleOrDefault(s => s.Type == ClaimTypes.Name)
+            //     !.Value;
+            // var model = await _userService.GetUserByUsername(username);
+            return View();
+        }
     }
 }

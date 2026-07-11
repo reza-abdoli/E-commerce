@@ -15,5 +15,8 @@ public interface IUserService : IAsyncDisposable
     Task<bool> GetLogin(RegisterOrLoginDto registerOrLoginDto);
 
     Task<UserDashboardDetailDto> UserDashboardDetail(long userId);
+    Task<bool> IsProfileDetailCompleted(long userId);
+    Task<EditUserInfoDTO> GetEditUserDetail(long userId);
+    Task EditUserDetail(EditUserInfoDTO dto);
 
 }

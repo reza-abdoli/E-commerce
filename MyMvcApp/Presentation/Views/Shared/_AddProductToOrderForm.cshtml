@@ -17,13 +17,15 @@
 
 @if (User.Identity!.IsAuthenticated)
 {
-    <div id="add-to-cart-wrap">
+    @* حالت ۱: دکمه افزودن *@
+    <div id="add-to-cart-wrap" class="d-none">
         <button type="button" id="addToCartBtn" class="btn btn-danger w-100 mb-2"
                 onclick="cartAdd()">
             <i class="bi bi-cart-plus me-1"></i> افزودن به سبد خرید
         </button>
     </div>
 
+    @* حالت ۲: کانتر تعداد *@
     <div id="qty-counter-wrap" class="d-none mb-2">
         <div class="d-flex align-items-center justify-content-between
                     border rounded-3 px-3 py-2 bg-light">
@@ -35,7 +37,14 @@
         </div>
     </div>
 
-    @* پیام خطا — پنهان تا زمانی که لازم بشه *@
+    @* حالت ۳: ناموجود *@
+    <div id="out-of-stock-wrap" class="d-none mb-2">
+        <button class="btn btn-secondary w-100 mb-2" disabled>
+            <i class="bi bi-slash-circle me-1"></i> ناموجود
+        </button>
+    </div>
+
+    @* پیام خطا *@
     <div id="cart-error-msg" class="alert alert-warning font-13 py-2 mt-2 d-none" role="alert">
         <i class="bi bi-exclamation-triangle me-1"></i>
         <span id="cart-error-text"></span>
@@ -75,7 +84,6 @@ else
         if (!box || !text) return;
         text.textContent = msg;
         box.classList.remove('d-none');
-        // بعد از ۴ ثانیه خودکار پنهان بشه
         setTimeout(() => box.classList.add('d-none'), 4000);
     }
 
@@ -83,15 +91,48 @@ else
         document.getElementById('cart-error-msg')?.classList.add('d-none');
     }
 
-    async function checkCartState(variantId) {
+    // ─── سه حالت نمایش ───
+    function showAddButton()   {
+        document.getElementById('add-to-cart-wrap')?.classList.remove('d-none');
+        document.getElementById('qty-counter-wrap')?.classList.add('d-none');
+        document.getElementById('out-of-stock-wrap')?.classList.add('d-none');
+        document.getElementById('price-wrap')?.classList.remove('d-none');
+
+    }
+    function showCounter() {
+        document.getElementById('qty-counter-wrap')?.classList.remove('d-none');
+        document.getElementById('add-to-cart-wrap')?.classList.add('d-none');
+        document.getElementById('out-of-stock-wrap')?.classList.add('d-none');
+        document.getElementById('cart-qty-display').textContent = _count;
+        document.getElementById('price-wrap')?.classList.remove('d-none');
+
+    }
+    function showOutOfStock() {
+        document.getElementById('out-of-stock-wrap')?.classList.remove('d-none');
+        document.getElementById('add-to-cart-wrap')?.classList.add('d-none');
+        document.getElementById('qty-counter-wrap')?.classList.add('d-none');
+        document.getElementById('price-wrap')?.classList.add('d-none');
+
+    }
+
+    // ─── بررسی وضعیت سبد ───
+    // stock: موجودی انبار همین ورینت (از data-stock دکمه سایز)
+    async function checkCartState(variantId, stock) {
         const infoUrl = document.getElementById('cart-info-url').value;
         try {
             const data = await fetch(`${infoUrl}?productVariantId=${variantId}`).then(r => r.json());
             if (data && data.count > 0) {
+                // توی سبد هست — counter نشون بده
                 _orderDetailId = data.orderDetailId;
                 _count = data.count;
                 showCounter();
+            } else if (stock !== undefined && stock <= 0) {
+                // موجودی انبار صفره — ناموجود نشون بده
+                _orderDetailId = null;
+                _count = 0;
+                showOutOfStock();
             } else {
+                // نه توی سبده، نه ناموجوده — دکمه افزودن
                 _orderDetailId = null;
                 _count = 0;
                 showAddButton();
@@ -112,8 +153,6 @@ else
         btn.disabled = true;
         try {
             const data = await post(addUrl, { ProductId: productId, ProductVariantId: variantId });
-
-            // سرویس وقتی موجودی نداره orderDetailId=0 برمیگردونه
             if (data.success && data.orderDetailId > 0) {
                 _orderDetailId = data.orderDetailId;
                 _count = 1;
@@ -135,7 +174,6 @@ else
         const changeUrl = document.getElementById('cart-change-url').value;
 
         if (newCount < 1) {
-            // حذف از سبد
             await post(changeUrl, { orderDetailId: _orderDetailId, newCount: 0 });
             _orderDetailId = null;
             _count = 0;
@@ -150,27 +188,23 @@ else
             document.getElementById('cart-qty-display').textContent = _count;
             hideError();
         } else {
-            // سرویس false برگردوند یعنی newCount از موجودی انبار بیشتره
             showError(`حداکثر تعداد قابل سفارش ${_count} عدد است.`);
         }
     };
 
-    window.cartCheckVariant = function (variantId) {
-        checkCartState(variantId);
+    // ─── وقتی رنگ/سایز عوض میشه — stock هم میاد ───
+    window.cartCheckVariant = function (variantId, stock) {
+        checkCartState(variantId, stock);
     };
 
-    function showCounter() {
-        document.getElementById('add-to-cart-wrap').classList.add('d-none');
-        document.getElementById('qty-counter-wrap').classList.remove('d-none');
-        document.getElementById('cart-qty-display').textContent = _count;
-    }
+    // ─── لود اولیه: stock رو از دکمه سایز فعال می‌خونیم ───
+    const initialVariantId  = document.getElementById('ProductVariantId').value;
+    const initialActiveSizeBtn = document.querySelector('.custom-size-btn.active-size');
+    const initialStock = initialActiveSizeBtn
+        ? parseInt(initialActiveSizeBtn.dataset.stock)
+        : undefined;
 
-    function showAddButton() {
-        document.getElementById('qty-counter-wrap').classList.add('d-none');
-        document.getElementById('add-to-cart-wrap').classList.remove('d-none');
-    }
+    if (initialVariantId) checkCartState(initialVariantId, initialStock);
 
-    const initialVariantId = document.getElementById('ProductVariantId').value;
-    if (initialVariantId) checkCartState(initialVariantId);
 })();
 </script>

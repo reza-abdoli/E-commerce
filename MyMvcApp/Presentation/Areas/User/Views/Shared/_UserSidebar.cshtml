@@ -1,0 +1,115 @@
+@using System.Security.Claims
+
+@{
+    var fullName   = User.FindFirst("FullName")?.Value
+                  ?? User.FindFirst(ClaimTypes.Name)?.Value
+                  ?? "کاربر";
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action     = ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool IsActive(string c, string a) =>
+        string.Equals(controller, c, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(action,     a, StringComparison.OrdinalIgnoreCase);
+}
+
+<style>
+    body { margin-right: 240px !important; background: #f8fafc; }
+
+    .user-sidebar {
+        width: 240px;
+        min-height: 100vh;
+        background: #fff;
+        border-left: 1px solid #e9ecef;
+        position: fixed;
+        right: 0;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        padding: 1.5rem 1rem;
+        overflow-y: auto;
+    }
+    .sidebar-nav-link {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        padding: .55rem .85rem;
+        border-radius: 10px;
+        font-size: 13px;
+        color: #475569;
+        text-decoration: none;
+        transition: background .15s, color .15s;
+        margin-bottom: 2px;
+    }
+    .sidebar-nav-link:hover  { background: #f8fafc; color: #1e293b; }
+    .sidebar-nav-link.active { background: #fee2e2; color: #dc3545; font-weight: 600; }
+    .sidebar-nav-link i      { font-size: 15px; width: 18px; }
+    .sidebar-divider         { border-color: #f1f5f9; margin: .5rem 0; }
+    .font-11                 { font-size: 11px; }
+</style>
+
+<aside class="user-sidebar shadow-sm">
+
+    @* برند *@
+    <a href="/" class="d-flex align-items-center gap-2 text-decoration-none mb-4">
+        <i class="bi bi-bag-heart-fill text-danger fs-4"></i>
+        <span class="fw-bold text-dark font-14">فروشگاه</span>
+    </a>
+
+    @* پروفایل *@
+    <div class="d-flex align-items-center gap-2 bg-light rounded-3 p-2 mb-4">
+        <div class="rounded-circle bg-danger text-white d-flex align-items-center
+                    justify-content-center flex-shrink-0"
+             style="width:36px;height:36px;font-size:15px">
+            <i class="bi bi-person-fill"></i>
+        </div>
+        <div class="min-w-0">
+            <div class="fw-bold font-12 text-dark text-truncate">@fullName</div>
+            <div class="font-11 text-muted">پنل کاربری</div>
+        </div>
+    </div>
+
+    @* منوی اصلی *@
+    <nav class="flex-grow-1">
+        <p class="font-11 text-muted fw-bold mb-2 px-2">منو</p>
+
+        <a asp-area="User" asp-controller="Account" asp-action="Dashboard"
+           class="sidebar-nav-link @(IsActive("Account","Dashboard") ? "active" : "")">
+            <i class="bi bi-grid-1x2"></i> داشبورد
+        </a>
+
+        <a asp-area="User" asp-controller="Order" asp-action="Cart"
+           class="sidebar-nav-link @(IsActive("Order","Cart") ? "active" : "")">
+            <i class="bi bi-cart3"></i> سبد خرید
+        </a>
+
+        <a asp-area="User" asp-controller="Order" asp-action="PaidOrders"
+           class="sidebar-nav-link @(IsActive("Order","MyOrders") ? "active" : "")">
+            <i class="bi bi-box-seam"></i> سفارش‌های من
+        </a>
+
+        <hr class="sidebar-divider">
+        <p class="font-11 text-muted fw-bold mb-2 px-2">حساب کاربری</p>
+
+        <a asp-area="User" asp-controller="Account" asp-action="EditUserDetail"
+           class="sidebar-nav-link @(IsActive("Account","EditUserDetail") ? "active" : "")">
+            <i class="bi bi-person-lines-fill"></i> اطلاعات کاربری
+        </a>
+
+        <a asp-area="User" asp-controller="Account" asp-action="ChangePassword"
+           class="sidebar-nav-link @(IsActive("Account","ChangePassword") ? "active" : "")">
+            <i class="bi bi-key"></i> تغییر رمز عبور
+        </a>
+    </nav>
+
+    @* پایین سایدبار *@
+    <hr class="sidebar-divider mt-auto">
+    <a asp-area="" asp-controller="Account" asp-action="Logout"
+       class="sidebar-nav-link text-danger">
+        <i class="bi bi-box-arrow-left"></i> خروج از حساب
+    </a>
+    <a href="/" class="sidebar-nav-link mt-1">
+        <i class="bi bi-house"></i> بازگشت به سایت
+    </a>
+
+</aside>

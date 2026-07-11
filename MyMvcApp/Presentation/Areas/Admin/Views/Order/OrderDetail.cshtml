@@ -1,0 +1,240 @@
+@using Application.Extensions
+@model Data.DTOs.Order.OrderDetailDto
+@{
+    ViewData["Title"] = $"جزئیات سفارش #{Model.Id}";
+
+    string OrderStateLabel(Data.Entities.Order.OrderState state) =>
+        state switch {
+            Data.Entities.Order.OrderState.Open     => "ثبت شده",
+            Data.Entities.Order.OrderState.Paid     => "پرداخت شده",
+            Data.Entities.Order.OrderState.Pending  => "در حال پردازش",
+            Data.Entities.Order.OrderState.Sent     => "ارسال شده",
+            Data.Entities.Order.OrderState.Canceled => "لغو شده",
+            Data.Entities.Order.OrderState.Returned => "مرجوع شده",
+            _ => state.ToString()
+        };
+
+    string StateBadge(Data.Entities.Order.OrderState state) =>
+        state switch {
+            Data.Entities.Order.OrderState.Open     => "bg-secondary",
+            Data.Entities.Order.OrderState.Paid     => "bg-success",
+            Data.Entities.Order.OrderState.Pending  => "bg-warning text-dark",
+            Data.Entities.Order.OrderState.Sent     => "bg-primary",
+            Data.Entities.Order.OrderState.Canceled => "bg-danger",
+            Data.Entities.Order.OrderState.Returned => "bg-info text-dark",
+            _ => "bg-secondary"
+        };
+
+    var allStates = (Data.Entities.Order.OrderState[])ViewData["States"]!;
+}
+
+@* ─── هدر ─── *@
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a asp-action="FilterOrder" class="btn btn-outline-secondary btn-sm mb-2">
+            <i class="bi bi-arrow-right me-1"></i> بازگشت به لیست
+        </a>
+        <h5 class="fw-bold mb-0">
+            <i class="bi bi-receipt text-danger me-2"></i>
+            جزئیات سفارش
+            <span class="text-muted fw-normal font-14">#@Model.Id</span>
+        </h5>
+    </div>
+    <span class="badge @StateBadge(Model.OrderState) fs-6 px-3 py-2">
+        @OrderStateLabel(Model.OrderState)
+    </span>
+</div>
+
+<div class="row g-4">
+
+    @* ─── ستون اصلی ─── *@
+    <div class="col-lg-8">
+
+        @* اقلام سفارش *@
+        <div class="bg-white rounded-4 border shadow-sm p-4 mb-4">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-box-seam text-danger me-2"></i>اقلام سفارش
+                <span class="text-muted fw-normal font-12">
+                    (@Model.OrderDetails.Count محصول —
+                    @Model.OrderDetails.Sum(d => d.Count) عدد)
+                </span>
+            </h6>
+
+            @foreach (var item in Model.OrderDetails)
+            {
+                var product = item.ProductVariant?.Product;
+                var variant = item.ProductVariant;
+
+                <div class="d-flex gap-3 align-items-center py-3
+                            @(item != Model.OrderDetails.Last() ? "border-bottom" : "")">
+
+                    @if (product != null)
+                    {
+                        <img src="@(PathExtension.ProductImageThumb + product.MainImageName)"
+                             alt="@product.Title"
+                             class="rounded-3 border flex-shrink-0"
+                             style="width:64px;height:64px;object-fit:cover">
+                    }
+
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="fw-bold font-13 mb-1">@(product?.Title ?? "—")</div>
+                        <div class="font-12 text-muted d-flex flex-wrap gap-3">
+                            @if (variant != null)
+                            {
+                                <span>
+                                    <span class="d-inline-block rounded-circle border me-1"
+                                          style="width:10px;height:10px;
+                                                 background:@variant.ColorCode;
+                                                 vertical-align:middle"></span>
+                                    @variant.ColorTitle
+                                </span>
+                                <span>سایز: @variant.SizeTitle</span>
+                            }
+                            <span>تعداد: <strong>@item.Count</strong></span>
+                            <span>قیمت واحد: <strong>@item.ProductPrice.ToString("N0") تومان</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="text-end flex-shrink-0">
+                        <div class="fw-bold text-danger">@item.TotalPrice.ToString("N0")</div>
+                        <div class="font-12 text-muted">تومان</div>
+                    </div>
+                </div>
+            }
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-1">
+                <span class="fw-bold font-13">جمع کل سفارش:</span>
+                <div class="text-end">
+                    <span class="fw-bold text-danger fs-5">@Model.TotalPrice.ToString("N0")</span>
+                    <span class="font-12 text-muted me-1">تومان</span>
+                </div>
+            </div>
+        </div>
+
+        @* اطلاعات پرداخت *@
+        <div class="bg-white rounded-4 border shadow-sm p-4">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-credit-card text-danger me-2"></i>اطلاعات پرداخت
+            </h6>
+            <div class="row g-3 font-13">
+                <div class="col-sm-6">
+                    <span class="text-muted d-block mb-1">کد تراکنش بانکی:</span>
+                    <span class="fw-bold font-12 font-monospace text-primary">
+                        @(Model.BankTraceCode ?? "—")
+                    </span>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted d-block mb-1">شماره رکورد پرداخت:</span>
+                    <span class="fw-bold">@(Model.PaymentRecord?.Id.ToString() ?? "—")</span>
+                </div>
+                @if (Model.PaymentRecord != null)
+                {
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block mb-1">مبلغ پرداخت‌شده (ریال):</span>
+                        <span class="fw-bold">@Model.PaymentRecord.Amount.ToString("N0")</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block mb-1">زمان پرداخت:</span>
+                        <span class="fw-bold">
+                            @Model.PaymentRecord.PaymentTime.ToString("yyyy/MM/dd HH:mm")
+                        </span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.PostTraceCode))
+                {
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block mb-1">کد رهگیری پستی:</span>
+                        <span class="fw-bold text-success">@Model.PostTraceCode</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* ─── ستون کناری ─── *@
+    <div class="col-lg-4">
+
+        @* اطلاعات گیرنده *@
+        <div class="bg-white rounded-4 border shadow-sm p-4 mb-4">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-person-check text-danger me-2"></i>اطلاعات گیرنده
+            </h6>
+            <div class="d-flex flex-column gap-2 font-13">
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">نام:</span>
+                    <span class="fw-bold">@(Model.UserName ?? "—")</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">شهر:</span>
+                    <span class="fw-bold">@(Model.DestinationCity ?? "—")</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">کد پستی:</span>
+                    <span class="fw-bold font-monospace">@(Model.PostCode ?? "—")</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">شماره تماس:</span>
+                    <span class="fw-bold">@(Model.User?.MobileNumber ?? "—")</span>
+                </div>
+                <hr class="my-1">
+                <div>
+                    <span class="text-muted d-block mb-1">آدرس:</span>
+                    <span class="fw-bold font-12">@(Model.Address ?? "—")</span>
+                </div>
+            </div>
+        </div>
+
+        @* تاریخ‌ها *@
+        <div class="bg-white rounded-4 border shadow-sm p-4 mb-4">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-calendar3 text-danger me-2"></i>تاریخ‌ها
+            </h6>
+            <div class="d-flex flex-column gap-2 font-13">
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">ثبت سفارش:</span>
+                    <span>@Model.CreateDate.ToString("yyyy/MM/dd HH:mm")</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">آخرین به‌روزرسانی:</span>
+                    <span>@Model.LastUpdateDate.ToString("yyyy/MM/dd HH:mm")</span>
+                </div>
+            </div>
+        </div>
+
+        @* ─── تغییر وضعیت ─── *@
+        <div class="bg-white rounded-4 border shadow-sm p-4">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-arrow-repeat text-danger me-2"></i>تغییر وضعیت سفارش
+            </h6>
+
+            <div class="mb-3">
+                <span class="text-muted font-12 d-block mb-2">وضعیت فعلی:</span>
+                <span class="badge @StateBadge(Model.OrderState) fs-6 px-3">
+                    @OrderStateLabel(Model.OrderState)
+                </span>
+            </div>
+
+            <form asp-action="ProcessOrder" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="orderId" value="@Model.Id">
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold font-13">وضعیت جدید:</label>
+                        <select name="orderState" class="form-select form-select-sm">
+                            @foreach (var state in allStates)
+                            {
+                                <option value="@((int)state)" selected="@(state == Model.OrderState)">
+                                    @OrderStateLabel(state)
+                                </option>
+                            }
+                        </select>
+                </div>
+
+                <button type="submit" class="btn btn-danger w-100 btn-sm">
+                    <i class="bi bi-check2 me-1"></i> ثبت تغییر وضعیت
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>

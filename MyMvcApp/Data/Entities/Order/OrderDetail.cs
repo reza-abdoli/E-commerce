@@ -12,7 +12,6 @@ namespace Data.Entities
         public long ProductVariantId { get; set; }
         public int ProductPrice { get; set; }
         public int TotalPrice { get; set; }
-
         public int Count { get; set; }
         public Order.Order Order { get; set; }
         public ProductVariant ProductVariant { get; set; }

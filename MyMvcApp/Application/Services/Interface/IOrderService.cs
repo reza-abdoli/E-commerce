@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Data.DTOs.Order;
 using Data.Entities;
+using Data.Entities.Order;
 
 namespace Application.Services.Interface
 {
@@ -17,5 +18,12 @@ namespace Application.Services.Interface
 
         Task<OpenOrderDto?> UserOpenOrderDetail(long userId);
         Task<OrderDetail?> GetCartItemForVariant(long userId, long productVariantId);
+
+        Task UpdatePaidOrder(SuccessPaymentResult result);
+
+        Task<List<Order>> GetUserPaidOrders(long userId);
+        Task<FilterOrderDto> FilterOrders(FilterOrderDto filter);
+        Task<OrderDetailDto> OrderDetail(long orderId);
+        Task ProcessOrder(long orderId, OrderState orderState);
     }
 }

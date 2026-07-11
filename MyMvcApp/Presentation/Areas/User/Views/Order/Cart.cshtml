@@ -1,0 +1,247 @@
+@using Application.Extensions
+@model Data.DTOs.Order.OpenOrderDto
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "سبد خرید";
+    var changeUrl = Url.Action("ChangeOrderDetailCount", "Order", new { area = "User" });
+}
+
+@Html.AntiForgeryToken()
+<input type="hidden" id="cart-change-url" value="@changeUrl">
+
+<section class="py-4">
+    <div class="container">
+
+        <h5 class="fw-bold mb-4">
+            <i class="bi bi-cart3 me-2 text-danger"></i>سبد خرید
+        </h5>
+
+        @if (Model == null || !Model.OrderDetails.Any())
+        {
+            @* ─── سبد خالی ─── *@
+            <div class="bg-white rounded-4 border shadow-sm p-5 text-center">
+                <i class="bi bi-cart-x text-muted" style="font-size:4rem"></i>
+                <p class="text-muted mt-3 mb-4">سبد خرید شما خالی است</p>
+                <a asp-controller="Product" asp-action="FilterProducts"
+                   class="btn btn-danger px-4">
+                    <i class="bi bi-bag me-1"></i> مشاهده محصولات
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4">
+
+                @* ─── لیست اقلام ─── *@
+                <div class="col-lg-8">
+                    <div class="bg-white rounded-4 border shadow-sm" id="cart-items-wrap">
+
+                        @foreach (var item in Model.OrderDetails)
+                        {
+                            var product = item.ProductVariant.Product;
+                            var variant = item.ProductVariant;
+
+                            <div class="cart-item border-bottom p-3 d-flex gap-3 align-items-center"
+                                 id="cart-item-@item.Id"
+                                 data-order-detail-id="@item.Id"
+                                 data-price="@product.Price"
+                                 data-stock="@variant.StockCount">
+
+                                @* تصویر *@
+                                <a asp-controller="Product" asp-action="ProductDetail"
+                                   asp-route-productId="@product.Id" class="flex-shrink-0">
+                                    <img src="@(PathExtension.ProductImageThumb + product.MainImageName)"
+                                         alt="@product.Title"
+                                         class="rounded-3 border"
+                                         style="width:80px;height:80px;object-fit:cover">
+                                </a>
+
+                                @* اطلاعات محصول *@
+                                <div class="flex-grow-1 min-w-0">
+                                    <a asp-controller="Product" asp-action="ProductDetail"
+                                       asp-route-productId="@product.Id"
+                                       class="fw-bold font-13 text-dark text-decoration-none d-block mb-1 text-truncate">
+                                        @product.Title
+                                    </a>
+                                    <div class="d-flex flex-wrap gap-2 font-12 text-muted mb-2">
+                                        <span>
+                                            <span class="d-inline-block rounded-circle border me-1"
+                                                  style="width:10px;height:10px;background:@variant.ColorCode;vertical-align:middle"></span>
+                                            @variant.ColorTitle
+                                        </span>
+                                        <span>سایز: @variant.SizeTitle</span>
+                                    </div>
+
+                                    @* کانتر تعداد *@
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="d-flex align-items-center border rounded-3 overflow-hidden">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-light px-3 py-1 border-0 cart-minus"
+                                                    data-id="@item.Id">−</button>
+                                            <span class="px-3 fw-bold font-13 qty-display"
+                                                  id="qty-@item.Id">@item.Count</span>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-light px-3 py-1 border-0 cart-plus"
+                                                    data-id="@item.Id">+</button>
+                                        </div>
+                                        <span class="font-12 text-muted">
+                                            موجودی: @variant.StockCount
+                                        </span>
+                                    </div>
+
+                                    @* پیام خطا برای این آیتم *@
+                                    <div class="item-error text-danger font-12 mt-1 d-none"
+                                         id="err-@item.Id"></div>
+                                </div>
+
+                                @* قیمت *@
+                                <div class="text-end flex-shrink-0">
+                                    <div class="fw-bold text-danger font-14 item-total-price"
+                                         id="price-@item.Id">
+                                        @((product.Price * item.Count).ToString("N0"))
+                                    </div>
+                                    <div class="font-12 text-muted">تومان</div>
+                                    <button type="button"
+                                            class="btn btn-sm btn-link text-danger p-0 mt-2 font-12 cart-remove"
+                                            data-id="@item.Id">
+                                        <i class="bi bi-trash3"></i> حذف
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @* ─── خلاصه سفارش ─── *@
+                <div class="col-lg-4">
+                    <div class="bg-white rounded-4 border shadow-sm p-4 position-sticky" style="top:16px">
+                        <h6 class="fw-bold mb-3">خلاصه سفارش</h6>
+                        <hr>
+
+                        <div class="d-flex justify-content-between font-13 mb-2">
+                            <span class="text-muted">تعداد اقلام:</span>
+                            <span id="total-items-count" class="fw-bold">
+                                @Model.OrderDetails.Sum(x => x.Count)
+                            </span>
+                        </div>
+
+                        <div class="d-flex justify-content-between font-13 mb-3">
+                            <span class="text-muted">جمع کل:</span>
+                            <div class="text-end">
+                                <span id="total-price" class="fw-bold text-danger fs-5">
+                                    @Model.TotalCartPrice().ToString("N0")
+                                </span>
+                                <span class="font-12 text-muted me-1">تومان</span>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <a asp-area="User" asp-controller="Order" asp-action="Checkout" class="btn btn-danger w-100">
+                            <i class="bi bi-credit-card me-1"></i> ادامه و پرداخت
+                        </a>
+                        <a asp-controller="Product" asp-action="FilterProducts"
+                           class="btn btn-outline-secondary w-100 mt-2 btn-sm">
+                            <i class="bi bi-arrow-right me-1"></i> ادامه خرید
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        }
+    </div>
+</section>
+
+@section SiteFooterSection {
+<script>
+(function () {
+    const changeUrl = document.getElementById('cart-change-url').value;
+    const token = () =>
+        document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+    async function post(url, body) {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': token()
+            },
+            body: new URLSearchParams(body).toString()
+        });
+        return res.json();
+    }
+
+    // ─── تغییر تعداد یک آیتم ───
+    async function changeCount(orderDetailId, delta) {
+        const row     = document.getElementById(`cart-item-${orderDetailId}`);
+        const qtyEl   = document.getElementById(`qty-${orderDetailId}`);
+        const priceEl = document.getElementById(`price-${orderDetailId}`);
+        const errEl   = document.getElementById(`err-${orderDetailId}`);
+        const stock   = parseInt(row.dataset.stock);
+        const price   = parseInt(row.dataset.price);
+
+        const currentQty = parseInt(qtyEl.textContent);
+        const newQty     = currentQty + delta;
+
+        // حذف آیتم
+        if (newQty < 1) {
+            await post(changeUrl, { orderDetailId, newCount: 0 });
+            row.remove();
+            recalcTotal();
+            checkEmpty();
+            return;
+        }
+
+        const data = await post(changeUrl, { orderDetailId, newCount: newQty });
+
+        if (data.success) {
+            qtyEl.textContent      = newQty;
+            priceEl.textContent    = (price * newQty).toLocaleString('fa-IR');
+            errEl.classList.add('d-none');
+            recalcTotal();
+        } else {
+            errEl.textContent = `حداکثر موجودی انبار ${stock} عدد است`;
+            errEl.classList.remove('d-none');
+            setTimeout(() => errEl.classList.add('d-none'), 3000);
+        }
+    }
+
+    // ─── محاسبه مجدد مجموع ───
+    function recalcTotal() {
+        let total = 0;
+        let totalItems = 0;
+
+        document.querySelectorAll('.cart-item').forEach(row => {
+            const qty   = parseInt(row.querySelector('.qty-display').textContent);
+            const price = parseInt(row.dataset.price);
+            total      += qty * price;
+            totalItems += qty;
+        });
+
+        document.getElementById('total-price').textContent      = total.toLocaleString('fa-IR');
+        document.getElementById('total-items-count').textContent = totalItems;
+    }
+
+    // ─── اگه همه آیتم‌ها حذف شدن ───
+    function checkEmpty() {
+        const wrap = document.getElementById('cart-items-wrap');
+        if (wrap && wrap.querySelectorAll('.cart-item').length === 0) {
+            location.reload(); // صفحه خالی رو نشون بده
+        }
+    }
+
+    // ─── event listenerها ───
+    document.querySelectorAll('.cart-plus').forEach(btn => {
+        btn.addEventListener('click', () => changeCount(btn.dataset.id, +1));
+    });
+
+    document.querySelectorAll('.cart-minus').forEach(btn => {
+        btn.addEventListener('click', () => changeCount(btn.dataset.id, -1));
+    });
+
+    document.querySelectorAll('.cart-remove').forEach(btn => {
+        btn.addEventListener('click', () => changeCount(btn.dataset.id, -999));
+    });
+})();
+</script>
+}

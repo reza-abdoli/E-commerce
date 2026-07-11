@@ -1,0 +1,135 @@
+@using Application.Extensions
+@model List<Data.Entities.Order.Order>
+@{
+    ViewData["Title"] = "سفارش‌های من";
+    Layout = "_UserLayout";
+}
+
+<div class="container-fluid py-4 px-4">
+
+    <h6 class="fw-bold mb-4">
+        <i class="bi bi-box-seam text-danger me-2"></i>سفارش‌های پرداخت‌شده
+    </h6>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="bg-white rounded-4 border shadow-sm p-5 text-center">
+            <i class="bi bi-inbox text-muted" style="font-size:3.5rem"></i>
+            <p class="text-muted mt-3 mb-4 font-13">هنوز سفارش پرداخت‌شده‌ای ندارید.</p>
+            <a href="/" class="btn btn-danger px-4 btn-sm">
+                <i class="bi bi-bag me-1"></i> شروع خرید
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-4">
+
+            @foreach (var order in Model.OrderBy(o => o.PaymentDate).Reverse())
+            {
+                <div class="bg-white rounded-4 border shadow-sm overflow-hidden">
+
+                    @* ─── هدر سفارش ─── *@
+                    <div class="d-flex flex-wrap justify-content-between align-items-center
+                                gap-2 px-4 py-3 bg-light border-bottom">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge bg-success font-12">
+                                <i class="bi bi-check-circle me-1"></i>پرداخت‌شده
+                            </span>
+                            <span class="fw-bold font-13">سفارش #@order.Id</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-3 font-12 text-muted">
+                            <span>
+                                <i class="bi bi-calendar3 me-1"></i>
+                                @order.PaymentDate?.ToString("yyyy/MM/dd HH:mm")
+                            </span>
+                            <span>
+                                <i class="bi bi-geo-alt me-1"></i>
+                                @order.DestinationCity
+                            </span>
+                        </div>
+                    </div>
+
+                    @* ─── اقلام ─── *@
+                    <div class="p-4">
+                        @if (order.OrderDetails != null && order.OrderDetails.Any())
+                        {
+                            @foreach (var item in order.OrderDetails)
+                            {
+                                var product = item.ProductVariant?.Product;
+                                var variant = item.ProductVariant;
+
+                                <div class="d-flex gap-3 align-items-center py-2
+                                            @(item != order.OrderDetails.Last() ? "border-bottom" : "")">
+
+                                    @if (product != null)
+                                    {
+                                        <img src="@(PathExtension.ProductImageThumb + product.MainImageName)"
+                                             alt="@product.Title"
+                                             class="rounded-3 border flex-shrink-0"
+                                             style="width:60px;height:60px;object-fit:cover">
+                                    }
+
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="fw-bold font-13 mb-1 text-truncate">
+                                            @(product?.Title ?? "—")
+                                        </div>
+                                        <div class="font-12 text-muted d-flex flex-wrap gap-2">
+                                            @if (variant != null)
+                                            {
+                                                <span>
+                                                    <span class="d-inline-block rounded-circle border me-1"
+                                                          style="width:9px;height:9px;background:@variant.ColorCode;vertical-align:middle"></span>
+                                                    @variant.ColorTitle
+                                                </span>
+                                                <span>سایز: @variant.SizeTitle</span>
+                                            }
+                                            <span>تعداد: @item.Count</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-end flex-shrink-0">
+                                        <div class="fw-bold text-danger font-13">
+                                            @item.TotalPrice.ToString("N0")
+                                        </div>
+                                        <div class="font-12 text-muted">تومان</div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    @* ─── فوتر سفارش ─── *@
+                    <div class="d-flex flex-wrap justify-content-between align-items-center
+                                gap-2 px-4 py-3 bg-light border-top">
+                        <div class="font-12 text-muted">
+                            <i class="bi bi-person me-1"></i>@order.UserName
+                            @if (!string.IsNullOrEmpty(order.PostCode))
+                            {
+                                <span>
+                                    <i class="bi bi-mailbox me-1"></i>
+                                    <text>کد پستی: </text>@order.PostCode
+                                </span>
+                            }
+
+                            <span>
+                                <i class="bi bi-credit-card me-1"></i>
+                               <text>کد تراکنش: </text>@order.TransactionId
+                            </span>
+                            
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="font-12 text-muted">جمع کل:</span>
+                            <span class="fw-bold text-danger font-14 me-1">
+                                @order.TotalPrice.ToString("N0")
+                            </span>
+                            <span class="font-12 text-muted">تومان</span>
+                        </div>
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    }
+</div>

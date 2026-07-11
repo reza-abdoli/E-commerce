@@ -16,10 +16,15 @@ public class UserService : IUserService
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<Order> _orderRepository;
 
-    public UserService(IRepository<User> userRepository,IRepository<Order> orderRepository)
+    public UserService(IRepository<User> userRepository, IRepository<Order> orderRepository)
     {
         _userRepository = userRepository;
         _orderRepository = orderRepository;
+    }
+
+    public Task<UserDashboardDetailDto> CheckUserFilledProfile(long userId)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task CreateUser(RegisterOrLoginDto registerOrLoginDto)
@@ -40,6 +45,8 @@ public class UserService : IUserService
         await _orderRepository.DisposeAsync();
     }
 
+
+
     public async Task<bool> GetLogin(RegisterOrLoginDto signupLoginDto)
     {
         var user = await GetUserByUsername(signupLoginDto.Username);
@@ -51,6 +58,15 @@ public class UserService : IUserService
     public async Task<User?> GetUserByUsername(string username)
     {
         return await _userRepository.GetQuery().SingleOrDefaultAsync(u => u.Username == username);
+    }
+
+    public async Task<bool> IsProfileDetailCompleted(long userId)
+    {
+        var user = await _userRepository.GetEntityById(userId);
+        if (user.MobileNumber == null || user.FullName == null || user.Address == null ||
+         user.PostCode == null || user.UserCity == null)
+            return false;
+        return true;
     }
 
     public async Task<UserDashboardDetailDto> UserDashboardDetail(long userId)
@@ -66,5 +82,33 @@ public class UserService : IUserService
             SentOrderCount = orders.Count(o => o.OrderState == OrderState.Sent),
             PendingOrders = orders.Where(o => o.OrderState == OrderState.Pending).ToList()
         };
+    }
+
+    public async Task<EditUserInfoDTO> GetEditUserDetail(long userId)
+    {
+        var user = await _userRepository.GetEntityById(userId);
+        return new EditUserInfoDTO
+        {
+            UserId = userId,
+            MobileNumber = user.MobileNumber,
+            FullName = user.FullName,
+            Email = user.Email,
+            Address = user.Address,
+            PostCode = user.PostCode,
+            UserCity = user.UserCity
+        };
+    }
+
+    public async Task EditUserDetail(EditUserInfoDTO dto)
+    {
+        var user = await _userRepository.GetEntityById(dto.UserId);
+        user.MobileNumber = dto.MobileNumber;
+        user.FullName = dto.FullName;
+        user.Email = dto.Email;
+        user.Address = dto.Address;
+        user.PostCode = dto.PostCode;
+        user.UserCity = dto.UserCity;
+        _userRepository.UpdateEntity(user);
+        await _userRepository.SaveChanges();
     }
 }

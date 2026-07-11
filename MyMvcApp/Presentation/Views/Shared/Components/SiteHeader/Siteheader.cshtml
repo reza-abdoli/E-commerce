@@ -42,7 +42,7 @@
                         }
                         @if (User.Identity!.IsAuthenticated)
                         {
-                            <a asp-area="" asp-controller="Account" asp-action="Login"
+                            <a asp-area="@(User.IsInRole("Admin") ? "Admin" : "User")" asp-controller="Home" asp-action="Index"
                                class="d-flex align-items-center gap-1 text-decoration-none text-dark">
                                 <i class="bi bi-person fs-5"></i>
                                 <span class="d-none d-sm-inline font-14">حساب کاربری</span>

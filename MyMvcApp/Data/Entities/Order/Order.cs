@@ -16,7 +16,7 @@ namespace Data.Entities.Order
         public int TotalPrice { get; set; }
         public string? Description { get; set; }
         public string? PostTraceCode { get; set; }
-        public string? BankTraceCode { get; set; }
+        public long? TransactionId { get; set; }
         public long? PaymentRecordId { get; set; }
         public DateTime? PaymentDate { get; set; }
         public OrderState OrderState { get; set; }

@@ -31,6 +31,8 @@ namespace Data.Context
         public DbSet<Order> Order { get; set; }
         public DbSet<OrderDetail> OrderDetail { get; set; }
         public DbSet<ProductSell> ProductSell { get; set; }
+        public DbSet<PaymentRecord> PaymentRecord { get; set; }
+        public DbSet<SuccessPaymentResult> SuccessPaymentResult { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -63,6 +65,8 @@ namespace Data.Context
             modelBuilder.Entity<Order>().HasQueryFilter(pv => !pv.IsDeleted);
             modelBuilder.Entity<OrderDetail>().HasQueryFilter(pv => !pv.IsDeleted);
             modelBuilder.Entity<ProductSell>().HasQueryFilter(pv => !pv.IsDeleted);
+            modelBuilder.Entity<PaymentRecord>().HasQueryFilter(pv => !pv.IsDeleted);
+            modelBuilder.Entity<SuccessPaymentResult>().HasQueryFilter(pv => !pv.IsDeleted);
 
 
         }
