@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.Responses;
 using Application.Services.Interface;
 using Data.DTOs.Account;
 using Data.Entities.Order;
@@ -108,6 +109,28 @@ public class UserService : IUserService
         user.Address = dto.Address;
         user.PostCode = dto.PostCode;
         user.UserCity = dto.UserCity;
+        _userRepository.UpdateEntity(user);
+        await _userRepository.SaveChanges();
+    }
+    public async Task DepositBalance(DepositBalanceDto dto)
+    {
+        var user = await _userRepository.GetEntityById(dto.Id);
+        user.Balance += dto.Amount;
+        _userRepository.UpdateEntity(user);
+        await _userRepository.SaveChanges();
+
+    }
+
+    public async Task<int> GetUserBalance(long userId)
+    {
+        var user = await _userRepository.GetEntityById(userId);
+        return user.Balance;
+    }
+
+    public async Task WithdrawBalance(long userId, int amount)
+    {
+        var user = await _userRepository.GetEntityById(userId);
+        user.Balance -= amount;
         _userRepository.UpdateEntity(user);
         await _userRepository.SaveChanges();
     }

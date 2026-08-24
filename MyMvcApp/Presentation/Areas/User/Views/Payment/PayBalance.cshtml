@@ -1,0 +1,181 @@
+@* Views/Areas/User/Payment/PayBalance.cshtml *@
+@model Data.DTOs.Account.DepositBalanceDto
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شارژ کیف پول</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gateway-card {
+            background: #fff;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .gateway-header {
+            background: linear-gradient(135deg, #1b5e20, #388e3c);
+            padding: 1.5rem 2rem;
+            color: #fff;
+        }
+        .gateway-body { padding: 2rem; }
+        .wallet-logo {
+            width: 48px; height: 48px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+        }
+        .amount-box {
+            background: #f1f8e9;
+            border: 2px dashed #a5d6a7;
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .amount-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1b5e20;
+            letter-spacing: -1px;
+        }
+        .sim-badge {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: .5rem 1rem;
+            font-size: 12px;
+            color: #856404;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .btn-success-pay {
+            background: linear-gradient(135deg, #2e7d32, #43a047);
+            border: none; color: #fff;
+            border-radius: 12px; padding: .75rem;
+            font-size: 14px; font-weight: 600;
+            transition: opacity .2s;
+        }
+        .btn-success-pay:hover { opacity: .9; color: #fff; }
+        .btn-fail-pay {
+            background: #fff;
+            border: 2px solid #dc3545; color: #dc3545;
+            border-radius: 12px; padding: .75rem;
+            font-size: 14px; font-weight: 600;
+            transition: all .2s;
+        }
+        .btn-fail-pay:hover { background: #dc3545; color: #fff; }
+        .security-row {
+            display: flex; align-items: center; justify-content: center;
+            gap: .5rem; font-size: 11px; color: #78909c; margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="gateway-card">
+
+    <div class="gateway-header">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="wallet-logo">
+                <i class="bi bi-wallet2"></i>
+            </div>
+            <div>
+                <div class="fw-bold" style="font-size:15px">شارژ کیف پول</div>
+                <div style="font-size:11px;opacity:.8">Wallet Top-up Simulator</div>
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap" style="font-size:11px;opacity:.75">
+            <span><i class="bi bi-shield-lock me-1"></i>اتصال امن SSL</span>
+            <span><i class="bi bi-clock me-1"></i>زمان باقیمانده: <span id="timer">10:00</span></span>
+        </div>
+    </div>
+
+    <div class="gateway-body">
+
+        <div class="sim-badge">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            این یک درگاه شبیه‌سازی‌شده برای محیط توسعه است
+        </div>
+
+        <div class="amount-box">
+            <div class="text-muted mb-1" style="font-size:12px">مبلغ شارژ</div>
+            <div class="amount-value">@Model.Amount.ToString("N0")</div>
+            <div class="text-muted mt-1" style="font-size:12px">
+                تومان (معادل @((Model.Amount * 10).ToString("N0")) ریال)
+            </div>
+        </div>
+
+        <div class="merchant-info bg-light rounded-3 p-3 mb-4" style="font-size:13px">
+            <div class="d-flex justify-content-between mb-1">
+                <span class="text-muted">نوع تراکنش:</span>
+                <span class="fw-bold">شارژ کیف پول</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">مبلغ:</span>
+                <span class="fw-bold text-success">@Model.Amount.ToString("N0") تومان</span>
+            </div>
+        </div>
+
+        @* فرم پرداخت موفق *@
+        <form asp-area="User" asp-controller="Payment" asp-action="PayBalance" method="post" class="mb-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="isSuccess" value="true">
+            <input type="hidden" name="dto.Amount" value="@Model.Amount">
+            <input type="hidden" name="dto.Id" value="@Model.Id">
+            <button type="submit" class="btn btn-success-pay w-100">
+                <i class="bi bi-check-circle me-2"></i>شبیه‌سازی پرداخت موفق
+            </button>
+        </form>
+
+        @* فرم پرداخت ناموفق *@
+        <form asp-area="User" asp-controller="Payment" asp-action="PayBalance" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="isSuccess" value="false">
+            <input type="hidden" name="dto.Amount" value="@Model.Amount">
+            <input type="hidden" name="dto.Id" value="@Model.Id">
+            <button type="submit" class="btn btn-fail-pay w-100">
+                <i class="bi bi-x-circle me-2"></i>شبیه‌سازی پرداخت ناموفق
+            </button>
+        </form>
+
+        <div class="security-row">
+            <i class="bi bi-lock-fill" style="color:#43a047"></i>
+            <span>ارتباط شما با این درگاه کاملاً رمزگذاری شده است</span>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let seconds = 600;
+    const timerEl = document.getElementById('timer');
+    const interval = setInterval(() => {
+        seconds--;
+        if (seconds <= 0) { clearInterval(interval); timerEl.textContent = '00:00'; return; }
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        timerEl.textContent = `${m}:${s}`;
+    }, 1000);
+</script>
+</body>
+</html>

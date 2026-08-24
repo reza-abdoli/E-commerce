@@ -11,7 +11,7 @@ namespace Data.Entities.Order
 
         public int Amount { get; set; }
         public long BuyerId { get; set; }
-        public long OrderId { get; set; }
+        public long? OrderId { get; set; }
 
         public DateTime PaymentTime { get; set; }
     }

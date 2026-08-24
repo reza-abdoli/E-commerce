@@ -10,6 +10,8 @@
     bool IsActive(string c, string a) =>
         string.Equals(controller, c, StringComparison.OrdinalIgnoreCase) &&
         string.Equals(action,     a, StringComparison.OrdinalIgnoreCase);
+
+    @* int[] quickAmounts = new int[] { 50000, 100000, 200000, 500000, 1000000 }; *@
 }
 
 <style>
@@ -46,6 +48,29 @@
     .sidebar-nav-link i      { font-size: 15px; width: 18px; }
     .sidebar-divider         { border-color: #f1f5f9; margin: .5rem 0; }
     .font-11                 { font-size: 11px; }
+    .font-12                 { font-size: 12px; }
+
+    .wallet-panel {
+        position: fixed;
+        top: 0;
+        right: 240px;
+        width: calc(100vw - 240px);
+        height: 100vh;
+        background: #fff;
+        border-left: 1px solid #e2e8f0;
+        box-shadow: -4px 0 20px rgba(0,0,0,0.08);
+        z-index: 99;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+    .wallet-panel.show { display: flex; }
+    .wallet-panel-inner {
+        width: 100%;
+        max-width: 420px;
+    }
 </style>
 
 <aside class="user-sidebar shadow-sm">
@@ -56,7 +81,7 @@
         <span class="fw-bold text-dark font-14">فروشگاه</span>
     </a>
 
-    @* پروفایل *@
+    @* پروفایل + موجودی *@
     <div class="d-flex align-items-center gap-2 bg-light rounded-3 p-2 mb-4">
         <div class="rounded-circle bg-danger text-white d-flex align-items-center
                     justify-content-center flex-shrink-0"
@@ -65,6 +90,7 @@
         </div>
         <div class="min-w-0">
             <div class="fw-bold font-12 text-dark text-truncate">@fullName</div>
+            @await Component.InvokeAsync("GetLastUserData")
             <div class="font-11 text-muted">پنل کاربری</div>
         </div>
     </div>
@@ -100,6 +126,15 @@
            class="sidebar-nav-link @(IsActive("Account","ChangePassword") ? "active" : "")">
             <i class="bi bi-key"></i> تغییر رمز عبور
         </a>
+
+        <hr class="sidebar-divider">
+
+        @* کیف پول *@
+        <button type="button" id="walletBtn"
+                class="sidebar-nav-link text-success border-0 bg-transparent w-100">
+            <i class="bi bi-wallet2"></i> کیف پول
+        </button>
+
     </nav>
 
     @* پایین سایدبار *@
@@ -113,3 +148,75 @@
     </a>
 
 </aside>
+
+@* پنل کیف پول *@
+<div class="wallet-panel" id="walletPanel">
+    <div class="wallet-panel-inner">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold text-success mb-0">
+                    <i class="bi bi-wallet2 me-2"></i>شارژ کیف پول
+                </h4>
+                <p class="text-muted mb-0" style="font-size:13px;">مبلغ دلخواه خود را وارد کنید</p>
+            </div>
+            <button type="button" id="walletClose" class="btn btn-light border"
+                    style="border-radius:10px;">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        @* <p class="text-muted mb-2" style="font-size:13px;">انتخاب سریع:</p>
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            @foreach (int a in quickAmounts)
+            {
+                <button type="button" class="btn btn-outline-success quick-amt"
+                        data-val="@a" style="border-radius:10px; font-size:13px;">
+                    @a.ToString("N0") تومان
+                </button>
+            }
+        </div> *@
+
+        <form asp-area="User" asp-controller="Payment" asp-action="AddBalance" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="Id"
+                   value="@User.FindFirst(ClaimTypes.NameIdentifier)?.Value">
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">مبلغ (تومان)</label>
+                <input type="number"
+                       name="Amount"
+                       id="walletAmount"
+                       class="form-control form-control-lg text-center"
+                       placeholder="مثال: 150000"
+                       min="10000"
+                       style="border-radius:12px; font-size:20px; font-weight:700;"
+                       required>
+                <div class="form-text">حداقل مبلغ: ۱۰,۰۰۰ تومان</div>
+            </div>
+
+            <button type="submit" class="btn btn-success btn-lg w-100 fw-bold"
+                    style="border-radius:12px;">
+                <i class="bi bi-credit-card me-2"></i>ادامه و پرداخت
+            </button>
+        </form>
+
+    </div>
+</div>
+
+<script>
+    const walletBtn   = document.getElementById('walletBtn');
+    const walletPanel = document.getElementById('walletPanel');
+    const walletClose = document.getElementById('walletClose');
+
+    walletBtn.addEventListener('click', () => walletPanel.classList.toggle('show'));
+    walletClose.addEventListener('click', () => walletPanel.classList.remove('show'));
+
+    document.querySelectorAll('.quick-amt').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('walletAmount').value = btn.dataset.val;
+            document.querySelectorAll('.quick-amt').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+</script>

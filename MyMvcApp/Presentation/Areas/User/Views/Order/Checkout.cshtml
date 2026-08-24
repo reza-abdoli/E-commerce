@@ -180,7 +180,14 @@
 
                     <form asp-area="User" asp-controller="Payment" asp-action="PayOrder" method="get">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-danger w-100 mb-2">
+                        <button type="submit" class="btn btn-danger w-100 mb-2" name="isWalletPayment" value="true">
+                            <i class="bi bi-credit-card me-1"></i> پرداخت از کیف پول
+                        </button>
+                    </form>
+
+                    <form asp-area="User" asp-controller="Payment" asp-action="PayOrder" method="get">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger w-100 mb-2" name="isWalletPayment" value="false">
                             <i class="bi bi-credit-card me-1"></i> پرداخت آنلاین
                         </button>
                     </form>

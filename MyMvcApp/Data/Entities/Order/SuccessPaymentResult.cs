@@ -12,7 +12,7 @@ namespace Data.Entities.Order
 
         public int amount { get; set; }
 
-        public long order_id { get; set; }
+        public long? order_id { get; set; }
 
         public long buyer_id { get; set; }
 

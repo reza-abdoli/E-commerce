@@ -29,5 +29,5 @@ public class SelectedCategoriesViewComponent : ViewComponent
         };
         return View("SelectedCategories", model);
     }
-
+    
 }

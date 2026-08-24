@@ -179,7 +179,7 @@ namespace Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<long>("OrderId")
+                    b.Property<long?>("OrderId")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime>("PaymentTime")
@@ -219,7 +219,7 @@ namespace Data.Migrations
                     b.Property<long>("buyer_id")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("order_id")
+                    b.Property<long?>("order_id")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime>("payment_time")
@@ -641,6 +641,9 @@ namespace Data.Migrations
 
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Balance")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");

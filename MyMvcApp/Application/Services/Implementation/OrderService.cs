@@ -170,19 +170,10 @@ namespace Application.Services.Implementation
             };
         }
 
-        public async Task UpdatePaidOrder(SuccessPaymentResult result)
+        public async Task UpdatePaidOrder(SuccessPaymentResult result, long recordId)
         {
             // var dateTime = result.payment_time;
-            var record = new PaymentRecord
-            {
-                Amount = result.amount,
-                TransactionId = result.trans_id,
-                PaymentTime = result.payment_time,
-                BuyerId = result.buyer_id,
-                OrderId = result.order_id
-            };
-            await _paymentRecordRepository.AddEntity(record);
-            await _paymentRecordRepository.SaveChanges();
+
             var order = await _orderRepository.GetQuery().Include(o => o.OrderDetails)
                 .ThenInclude(d => d.ProductVariant).ThenInclude(v => v.Product).FirstAsync(o => o.Id == result.order_id);
             foreach (var item in order.OrderDetails)
@@ -212,7 +203,7 @@ namespace Application.Services.Implementation
             order.UserName = user.FullName;
             order.OrderState = OrderState.Paid;
             order.PaymentDate = result.payment_time;
-            order.PaymentRecordId = record.Id;
+            order.PaymentRecordId = recordId;
             order.TransactionId = result.trans_id;
 
             var totalPrice = order.OrderDetails.Select(item => item.ProductVariant.Product.Price * item.Count)
@@ -342,6 +333,13 @@ namespace Application.Services.Implementation
 
             _orderRepository.UpdateEntity(data);
             await _orderRepository.SaveChanges();
+        }
+
+
+
+        public async Task ProcessSuccessfulOrder(SuccessPaymentResult result, long recordId)
+        {
+            await UpdatePaidOrder(result, recordId);
         }
     }
 }
