@@ -9,6 +9,7 @@ using Data.DTOs.Category;
 using Data.Entities;
 using Data.Repository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using static Data.DTOs.Category.FilterCategoryDto;
 
 namespace Application.Services.Implementation;
@@ -17,12 +18,14 @@ public class CategoryService : ICategoryService
 {
     private readonly IRepository<ProductCategory> _categoryRepository;
     private readonly IRepository<ProductSelectedCategory> _productSelectedCategory;
+    private readonly ILogger<CategoryService> _logger;
 
 
-    public CategoryService(IRepository<ProductCategory> categoryRepository, IRepository<ProductSelectedCategory> productSelectedCategory)
+    public CategoryService(IRepository<ProductCategory> categoryRepository, IRepository<ProductSelectedCategory> productSelectedCategory, ILogger<CategoryService> logger)
     {
         _categoryRepository = categoryRepository;
         _productSelectedCategory = productSelectedCategory;
+        _logger = logger;
     }
     public async ValueTask DisposeAsync()
     {
@@ -32,7 +35,11 @@ public class CategoryService : ICategoryService
     {
 
         var urlInUse = await _categoryRepository.GetQuery().AnyAsync(c => c.Url == dto.Url);
-        if (urlInUse) return false;
+        if (urlInUse)
+        {
+            _logger.LogWarning("Category creation failed: URL already in use. Url: {Url}", dto.Url);
+            return false;
+        }
 
         var category = new ProductCategory
         {
@@ -52,10 +59,13 @@ public class CategoryService : ICategoryService
         }
         else
         {
+            _logger.LogWarning("Category creation failed: image save failed. Title: {Title}", dto.Title);
             return false;
         }
         await _categoryRepository.AddEntity(category);
         await _categoryRepository.SaveChanges();
+
+        _logger.LogInformation("Category created. CategoryId: {CategoryId}, Title: {Title}, ParentId: {ParentId}", category.Id, category.Title, category.ParentId);
         return true;
     }
 
@@ -104,11 +114,11 @@ public class CategoryService : ICategoryService
     }
     public async Task<bool> AddProductSelectedCategories(List<long> selectedCategories, long productId)
     {
-        // List<long> selectedExistCategory = new List<long>();
         foreach (var item in selectedCategories) 
         {
             if (await _categoryRepository.GetEntityById(item) == null)
             {
+                _logger.LogWarning("Adding product categories failed: category not found. ProductId: {ProductId}, CategoryId: {CategoryId}", productId, item);
                 return false;
             }
         }
@@ -121,6 +131,8 @@ public class CategoryService : ICategoryService
             });
         }
         await _productSelectedCategory.SaveChanges();
+
+        _logger.LogInformation("Product categories assigned. ProductId: {ProductId}, CategoryIds: {CategoryIds}", productId, string.Join(",", selectedCategories));
         return true;
     }
 
@@ -132,5 +144,7 @@ public class CategoryService : ICategoryService
         {
             _productSelectedCategory.DeleteEntityPermanently(item);
         }
+
+        _logger.LogInformation("Product categories removed. ProductId: {ProductId}, Count: {Count}", productId, selectedCategories.Count);
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Presentation.Extension;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.AddLog4Net("log4net.config");
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

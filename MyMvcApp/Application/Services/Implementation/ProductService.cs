@@ -10,6 +10,7 @@ using Data.Entities;
 using Data.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services.Implementation;
 
@@ -26,10 +27,11 @@ public class ProductService : IProductService
     private readonly IRepository<ProductVariant> _productVariantRepository;
     private readonly ICategoryService _categoryService;
     private readonly IMemoryCache _cache;
+    private readonly ILogger<ProductService> _logger;
 
 
 
-    public ProductService(IRepository<Brand> brandRepository, IRepository<Product> productRepository, IRepository<ProductCategory> productCategoryRepository, IRepository<ProductColor> productColorRepository, IRepository<ProductFeature> productFeatureRepository, IRepository<ProductGallery> productGalleryRepository, IRepository<ProductSelectedCategory> productSelectedCategoryRepository, IRepository<ProductSize> productSizeRepository, IRepository<ProductVariant> productVariantRepository, ICategoryService categoryService, IMemoryCache cashe)
+    public ProductService(IRepository<Brand> brandRepository, IRepository<Product> productRepository, IRepository<ProductCategory> productCategoryRepository, IRepository<ProductColor> productColorRepository, IRepository<ProductFeature> productFeatureRepository, IRepository<ProductGallery> productGalleryRepository, IRepository<ProductSelectedCategory> productSelectedCategoryRepository, IRepository<ProductSize> productSizeRepository, IRepository<ProductVariant> productVariantRepository, ICategoryService categoryService, IMemoryCache cashe, ILogger<ProductService> logger)
     {
         _brandRepository = brandRepository;
         _productRepository = productRepository;
@@ -42,6 +44,7 @@ public class ProductService : IProductService
         _productVariantRepository = productVariantRepository;
         _categoryService = categoryService;
         _cache = cashe;
+        _logger = logger;
     }
 
 
@@ -72,6 +75,8 @@ public class ProductService : IProductService
         };
         await _productColorRepository.AddEntity(newColor);
         await _productColorRepository.SaveChanges();
+
+        _logger.LogInformation("Product color created. ColorId: {ColorId}, Title: {Title}", newColor.Id, newColor.Title);
     }
 
     public async Task<FilterColorDto> FilterColors(FilterColorDto filter)
@@ -129,11 +134,16 @@ public class ProductService : IProductService
         var uniqueImgName = Guid.NewGuid().ToString("N") + Path.GetExtension(dto.Image.FileName);
         var uploadingImgResult = dto.Image.AddImageToServer(uniqueImgName, PathExtension.BrandServer, 150, 150, PathExtension.BrandThumbServer);
         if (!uploadingImgResult)
+        {
+            _logger.LogWarning("Brand creation failed: image upload failed. Title: {Title}", dto.Title);
             return false;
+        }
 
         newBrand.ImageName = uniqueImgName;
         await _brandRepository.AddEntity(newBrand);
         await _brandRepository.SaveChanges();
+
+        _logger.LogInformation("Brand created. BrandId: {BrandId}, Title: {Title}", newBrand.Id, newBrand.Title);
         return true;
     }
 
@@ -168,13 +178,16 @@ public class ProductService : IProductService
 
     public async Task CreateSize(CreateSizeDto dto)
     {
-        await _productSizeRepository.AddEntity(new ProductSize
+        var newSize = new ProductSize
         {
             Title = dto.Title,
             SizeType = dto.SizeType,
             Order = dto.Order
-        });
+        };
+        await _productSizeRepository.AddEntity(newSize);
         await _productSizeRepository.SaveChanges();
+
+        _logger.LogInformation("Product size created. SizeId: {SizeId}, Title: {Title}", newSize.Id, newSize.Title);
     }
     public async Task<List<ProductSize>> GetAllProductSizes()
     {
@@ -205,10 +218,12 @@ public class ProductService : IProductService
         }
         else
         {
+            _logger.LogWarning("Product creation failed: main image save failed. Title: {Title}", dto.Title);
             return CreateProductResult.SavingMainImageFailed;
         }
         if (dto.BrandId != 0 && await _brandRepository.GetEntityById(dto.BrandId) == null)
         {
+            _logger.LogWarning("Product creation failed: brand not found. Title: {Title}, BrandId: {BrandId}", dto.Title, dto.BrandId);
             return CreateProductResult.BrandNotFound;
         }
         newProduct.BrandId = dto.BrandId == 0 ? null : dto.BrandId;
@@ -219,6 +234,7 @@ public class ProductService : IProductService
         var result = await _categoryService.AddProductSelectedCategories(dto.Categories, newProduct.Id);
         if (!result)
         {
+            _logger.LogWarning("Product creation failed: category not found. ProductId: {ProductId}", newProduct.Id);
             return CreateProductResult.CategoryNotFound;
         }
 
@@ -244,6 +260,8 @@ public class ProductService : IProductService
                 galleryOrder++;
             }
         }
+
+        _logger.LogInformation("Product created. ProductId: {ProductId}, Title: {Title}, Price: {Price}", newProduct.Id, newProduct.Title, newProduct.Price);
         return CreateProductResult.Success;
     }
 
@@ -362,7 +380,13 @@ public class ProductService : IProductService
     public async Task<EditProductResult> EditProduct(EditProductDto dto)
     {
         var product = await _productRepository.GetQuery().FirstOrDefaultAsync(d => d.Id == dto.ProductId);
-        if (product == null) return EditProductResult.Error;
+        if (product == null)
+        {
+            _logger.LogWarning("Product edit failed: product not found. ProductId: {ProductId}", dto.ProductId);
+            return EditProductResult.Error;
+        }
+
+        var oldValues = $"Title: {product.Title}, Price: {product.Price}, IsAvailable: {product.IsAvailable}, BrandId: {product.BrandId}";
 
         var convertedPrice = int.Parse(dto.Price.Replace(",", ""));
 
@@ -377,7 +401,11 @@ public class ProductService : IProductService
             case > 0:
                 {
                     var brand = await _brandRepository.GetQuery().FirstOrDefaultAsync(d => d.Id == dto.BrandId);
-                    if (brand == null) return EditProductResult.BrandNotFound;
+                    if (brand == null)
+                    {
+                        _logger.LogWarning("Product edit failed: brand not found. ProductId: {ProductId}, BrandId: {BrandId}", dto.ProductId, dto.BrandId);
+                        return EditProductResult.BrandNotFound;
+                    }
                     product.BrandId = dto.BrandId;
                     break;
                 }
@@ -390,7 +418,11 @@ public class ProductService : IProductService
 
         await _categoryService.RemoveProductSelectedCategories(dto.ProductId);
         var addCategoryResult = await _categoryService.AddProductSelectedCategories(dto.Categories, dto.ProductId);
-        if (!addCategoryResult) return EditProductResult.CategoryNotFound;
+        if (!addCategoryResult)
+        {
+            _logger.LogWarning("Product edit failed: category not found. ProductId: {ProductId}", dto.ProductId);
+            return EditProductResult.CategoryNotFound;
+        }
 
 
 
@@ -404,6 +436,7 @@ public class ProductService : IProductService
             }
             else
             {
+                _logger.LogWarning("Product edit failed: image save failed. ProductId: {ProductId}", dto.ProductId);
                 return EditProductResult.ImageNotSaved;
             }
 
@@ -412,6 +445,12 @@ public class ProductService : IProductService
 
         _productRepository.UpdateEntity(product);
         await _productRepository.SaveChanges();
+
+        var newValues = $"Title: {product.Title}, Price: {product.Price}, IsAvailable: {product.IsAvailable}, BrandId: {product.BrandId}";
+
+        _logger.LogInformation(
+            "Product updated. ProductId: {ProductId}. Old values -> {OldValues}. New values -> {NewValues}",
+            dto.ProductId, oldValues, newValues);
 
         return EditProductResult.Success;
     }
@@ -459,6 +498,8 @@ public class ProductService : IProductService
             await _productVariantRepository.AddEntity(productVariant);
         }
         await _productVariantRepository.SaveChanges();
+
+        _logger.LogInformation("Product variants created. ProductId: {ProductId}, Count: {Count}", dto.ProductId, dto.Variantitems.Count);
     }
 
     public async Task CreateProductFeature(CreateProductFeatureDto dto)
@@ -475,6 +516,8 @@ public class ProductService : IProductService
             await _productFeatureRepository.AddEntity(productFeature);
         }
         await _productFeatureRepository.SaveChanges();
+
+        _logger.LogInformation("Product features created. ProductId: {ProductId}, Count: {Count}", dto.ProductId, dto.FeatureItems.Count);
     }
     public async Task<List<ProductItemDto>> GetNewestProducts()
     {

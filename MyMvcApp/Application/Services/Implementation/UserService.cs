@@ -9,6 +9,7 @@ using Data.Entities.Order;
 using Data.Entities.User;
 using Data.Repository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services.Implementation;
 
@@ -16,11 +17,16 @@ public class UserService : IUserService
 {
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<Order> _orderRepository;
+    private readonly ILogger<UserService> _logger;
 
-    public UserService(IRepository<User> userRepository, IRepository<Order> orderRepository)
+    public UserService(
+        IRepository<User> userRepository,
+        IRepository<Order> orderRepository,
+        ILogger<UserService> logger)
     {
         _userRepository = userRepository;
         _orderRepository = orderRepository;
+        _logger = logger;
     }
 
     public Task<UserDashboardDetailDto> CheckUserFilledProfile(long userId)
@@ -30,14 +36,17 @@ public class UserService : IUserService
 
     public async Task CreateUser(RegisterOrLoginDto registerOrLoginDto)
     {
-        await _userRepository.AddEntity(new User
+        var user = new User
         {
             Username = registerOrLoginDto.Username,
             Password = BCrypt.Net.BCrypt.HashPassword(registerOrLoginDto.Password),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
-        });
+        };
+
+        await _userRepository.AddEntity(user);
         await _userRepository.SaveChanges();
+        _logger.LogInformation("New user created. UserId: {UserId}, Username: {Username}", user.Id, user.Username);
     }
 
     public async ValueTask DisposeAsync()
@@ -46,13 +55,15 @@ public class UserService : IUserService
         await _orderRepository.DisposeAsync();
     }
 
-
-
     public async Task<bool> GetLogin(RegisterOrLoginDto signupLoginDto)
     {
         var user = await GetUserByUsername(signupLoginDto.Username);
         if (user == null || !BCrypt.Net.BCrypt.Verify(signupLoginDto.Password, user.Password))
+        {
+            _logger.LogWarning("Failed login attempt. Username: {Username}", signupLoginDto.Username);
             return false;
+        }
+        _logger.LogInformation("User logged in. UserId: {UserId}, Username: {Username}", user.Id, user.Username);
         return true;
     }
 
@@ -103,6 +114,9 @@ public class UserService : IUserService
     public async Task EditUserDetail(EditUserInfoDTO dto)
     {
         var user = await _userRepository.GetEntityById(dto.UserId);
+
+        var oldValues = $"FullName: {user.FullName}, Email: {user.Email}, Mobile: {user.MobileNumber}, Address: {user.Address}, PostCode: {user.PostCode}, City: {user.UserCity}";
+
         user.MobileNumber = dto.MobileNumber;
         user.FullName = dto.FullName;
         user.Email = dto.Email;
@@ -111,14 +125,24 @@ public class UserService : IUserService
         user.UserCity = dto.UserCity;
         _userRepository.UpdateEntity(user);
         await _userRepository.SaveChanges();
+
+        var newValues = $"FullName: {user.FullName}, Email: {user.Email}, Mobile: {user.MobileNumber}, Address: {user.Address}, PostCode: {user.PostCode}, City: {user.UserCity}";
+
+        _logger.LogInformation(
+            "User profile updated. UserId: {UserId}. Old values -> {OldValues}. New values -> {NewValues}",
+            dto.UserId, oldValues, newValues);
     }
     public async Task DepositBalance(DepositBalanceDto dto)
     {
         var user = await _userRepository.GetEntityById(dto.Id);
+        var oldBalance = user.Balance;
         user.Balance += dto.Amount;
         _userRepository.UpdateEntity(user);
         await _userRepository.SaveChanges();
 
+        _logger.LogInformation(
+            "Balance deposited. UserId: {UserId}, Amount: {Amount}, OldBalance: {OldBalance}, NewBalance: {NewBalance}",
+            dto.Id, dto.Amount, oldBalance, user.Balance);
     }
 
     public async Task<int> GetUserBalance(long userId)
@@ -130,8 +154,13 @@ public class UserService : IUserService
     public async Task WithdrawBalance(long userId, int amount)
     {
         var user = await _userRepository.GetEntityById(userId);
+        var oldBalance = user.Balance;
         user.Balance -= amount;
         _userRepository.UpdateEntity(user);
         await _userRepository.SaveChanges();
+
+        _logger.LogInformation(
+            "Balance withdrawn. UserId: {UserId}, Amount: {Amount}, OldBalance: {OldBalance}, NewBalance: {NewBalance}",
+            userId, amount, oldBalance, user.Balance);
     }
 }

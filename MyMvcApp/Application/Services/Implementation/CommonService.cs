@@ -9,6 +9,7 @@ using Data.Entities.Common;
 using Data.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services.Implementation;
 
@@ -17,11 +18,13 @@ public class CommonService : ICommonService
 {
     private readonly IRepository<Banner> _bannerRepository;
     private readonly IMemoryCache _cache;
+    private readonly ILogger<CommonService> _logger;
 
-    public CommonService(IRepository<Banner> bannerRepository, IMemoryCache cache)
+    public CommonService(IRepository<Banner> bannerRepository, IMemoryCache cache, ILogger<CommonService> logger)
     {
         _bannerRepository = bannerRepository;
         _cache = cache;
+        _logger = logger;
     }
     public async Task CreateBanner(CreateBannerDto dto)
     {
@@ -39,6 +42,8 @@ public class CommonService : ICommonService
 
         await _bannerRepository.AddEntity(newBanner);
         await _bannerRepository.SaveChanges();
+
+        _logger.LogInformation("Banner created. BannerId: {BannerId}, Title: {Title}, Location: {BannerLocation}", newBanner.Id, newBanner.Title, newBanner.BannerLocation);
 
         var cachedBanners = _cache.Get<List<BannerItemDto>>("AllBanners");
         if (cachedBanners == null) return;

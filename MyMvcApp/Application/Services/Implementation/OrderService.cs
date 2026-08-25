@@ -9,6 +9,7 @@ using Data.Entities.Order;
 using Data.Entities.User;
 using Data.Repository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services.Implementation
 {
@@ -21,11 +22,12 @@ namespace Application.Services.Implementation
         private readonly IRepository<ProductVariant> _variantRepository;
         private readonly IRepository<ProductSell> _productSellRepository;
         private readonly IRepository<PaymentRecord> _paymentRecordRepository;
+        private readonly ILogger<OrderService> _logger;
 
         public OrderService(IRepository<User> userRepository, IRepository<Order> orderRepository,
             IRepository<OrderDetail> orderDetailRepository, IRepository<Product> productRepository,
             IRepository<ProductVariant> variantRepository, IRepository<ProductSell> productSellRepository,
-            IRepository<PaymentRecord> paymentRecordRepository)
+            IRepository<PaymentRecord> paymentRecordRepository, ILogger<OrderService> logger)
         {
             _userRepository = userRepository;
             _orderRepository = orderRepository;
@@ -34,6 +36,7 @@ namespace Application.Services.Implementation
             _variantRepository = variantRepository;
             _productSellRepository = productSellRepository;
             _paymentRecordRepository = paymentRecordRepository;
+            _logger = logger;
         }
 
         public async ValueTask DisposeAsync()
@@ -55,7 +58,10 @@ namespace Application.Services.Implementation
             .Select(v => v.StockCount).SingleOrDefaultAsync();
 
             if (!(variantCount > 0))
+            {
+                _logger.LogWarning("Add to order failed: no stock. UserId: {UserId}, ProductVariantId: {ProductVariantId}", dto.UserId, dto.ProductVariantId);
                 return 0;
+            }
 
             if (await CheckOrderDetailExists(dto.UserId, dto.ProductVariantId))
             {
@@ -66,6 +72,8 @@ namespace Application.Services.Implementation
                 orderDetail.Count = 1;
                 _orderDetailRepository.UpdateEntity(orderDetail);
                 await _orderDetailRepository.SaveChanges();
+
+                _logger.LogInformation("Order detail updated. OrderDetailId: {OrderDetailId}, OrderId: {OrderId}, ProductVariantId: {ProductVariantId}", orderDetail.Id, orderId, dto.ProductVariantId);
                 return orderDetail.Id;
             }
             else
@@ -81,6 +89,8 @@ namespace Application.Services.Implementation
                 };
                 await _orderDetailRepository.AddEntity(newOrderDetail);
                 await _orderDetailRepository.SaveChanges();
+
+                _logger.LogInformation("Product added to order. OrderDetailId: {OrderDetailId}, OrderId: {OrderId}, ProductId: {ProductId}, ProductVariantId: {ProductVariantId}", newOrderDetail.Id, orderId, dto.ProductId, dto.ProductVariantId);
                 return newOrderDetail.Id;
             }
         }
@@ -112,6 +122,8 @@ namespace Application.Services.Implementation
             };
             await _orderRepository.AddEntity(newOrder);
             await _orderRepository.SaveChanges();
+
+            _logger.LogInformation("New open order created. OrderId: {OrderId}, UserId: {UserId}", newOrder.Id, userId);
             return newOrder.Id;
         }
 
@@ -123,6 +135,8 @@ namespace Application.Services.Implementation
             {
                 _orderDetailRepository.DeleteEntityPermanently(orderDetail);
                 await _orderDetailRepository.SaveChanges();
+
+                _logger.LogInformation("Order detail removed. OrderDetailId: {OrderDetailId}", orderDetailId);
             }
             else
             {
@@ -130,11 +144,17 @@ namespace Application.Services.Implementation
                 .Where(o => o.Id == orderDetailId)
                 .Select(o => o.ProductVariant.StockCount).SingleOrDefaultAsync();
                 if (variantCount < count)
+                {
+                    _logger.LogWarning("Order detail count change failed: not enough stock. OrderDetailId: {OrderDetailId}, RequestedCount: {RequestedCount}, StockCount: {StockCount}", orderDetailId, count, variantCount);
                     return false;
+                }
+                var oldCount = orderDetail.Count;
                 orderDetail.Count = count;
                 orderDetail.TotalPrice = orderDetail.ProductPrice * count;
                 _orderDetailRepository.UpdateEntity(orderDetail);
                 await _orderDetailRepository.SaveChanges();
+
+                _logger.LogInformation("Order detail count changed. OrderDetailId: {OrderDetailId}, OldCount: {OldCount}, NewCount: {NewCount}", orderDetailId, oldCount, count);
             }
             return true;
         }
@@ -172,7 +192,6 @@ namespace Application.Services.Implementation
 
         public async Task UpdatePaidOrder(SuccessPaymentResult result, long recordId)
         {
-            // var dateTime = result.payment_time;
 
             var order = await _orderRepository.GetQuery().Include(o => o.OrderDetails)
                 .ThenInclude(d => d.ProductVariant).ThenInclude(v => v.Product).FirstAsync(o => o.Id == result.order_id);
@@ -213,7 +232,9 @@ namespace Application.Services.Implementation
             _orderRepository.UpdateEntity(order);
             await _orderRepository.SaveChanges();
 
-
+            _logger.LogInformation(
+                "Order paid successfully. OrderId: {OrderId}, UserId: {UserId}, TotalPrice: {TotalPrice}, TransactionId: {TransactionId}, PaymentRecordId: {PaymentRecordId}",
+                order.Id, order.UserId, order.TotalPrice, order.TransactionId, recordId);
         }
 
         public async Task<List<Order>> GetUserPaidOrders(long userId)
@@ -329,10 +350,13 @@ namespace Application.Services.Implementation
         public async Task ProcessOrder(long orderId, OrderState orderState)
         {
             var data = await _orderRepository.GetEntityById(orderId);
+            var oldState = data.OrderState;
             data.OrderState = orderState;
 
             _orderRepository.UpdateEntity(data);
             await _orderRepository.SaveChanges();
+
+            _logger.LogInformation("Order state changed. OrderId: {OrderId}, OldState: {OldState}, NewState: {NewState}", orderId, oldState, orderState);
         }
 
 
