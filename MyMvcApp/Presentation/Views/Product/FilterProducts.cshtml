@@ -214,6 +214,11 @@
                             </div>
                         }
                     </div>
+
+                    @* ─── Pagination ─── *@
+                    <div class="bg-white rounded-4 border shadow-sm p-3 mt-3">
+                        @await Html.PartialAsync("_SitePaging", Model.GetCurrentPaging())
+                    </div>
                 }
                 else
                 {

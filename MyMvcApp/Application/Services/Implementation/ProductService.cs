@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Application.Extensions;
 using Application.Services.Interface;
 using Data.DTOs;
+using Data.DTOs.Paging;
 using Data.DTOs.Product;
 using Data.Entities;
 using Data.Repository;
@@ -336,11 +337,6 @@ public class ProductService : IProductService
             query = query.Where(d => d.Price > filter.StartPrice && d.Price < filter.EndPrice);
         }
 
-        if (query.Any())
-        {
-            filter.MostPrice = query.OrderByDescending(d => d.Price).First().Price;
-            filter.LeastPrice = query.OrderBy(d => d.Price).First().Price;
-        }
         if (filter.CategoryId is > 0)
         {
             query = query.Where(d => d.SelectedCategories.Any(s => s.CategoryId == filter.CategoryId));
@@ -355,8 +351,18 @@ public class ProductService : IProductService
         {
             query = query.Where(d => d.BrandId == filter.BrandId);
         }
-        filter.Data = await query.ToListAsync();
-        return filter;
+        if (await query.AnyAsync())
+        {
+            filter.MostPrice = await query.OrderByDescending(d => d.Price).Select(d => d.Price).FirstAsync();
+            filter.LeastPrice = await query.OrderBy(d => d.Price).Select(d => d.Price).FirstAsync();
+        }
+
+        var page = Page.BuildPage(filter.PageId, await query.CountAsync(), filter.TakeEntity, filter.HowManyShowPageAfterAndBefore);
+        var entitiesForThisPage = await query.GetPageData(page).ToListAsync();
+
+        return filter.SetData(entitiesForThisPage).SetPaging(page);
+        // filter.Data = await query.ToListAsync();
+        // return filter;
     }
 
     public async Task<EditProductDto> GetEditProduct(long productId)

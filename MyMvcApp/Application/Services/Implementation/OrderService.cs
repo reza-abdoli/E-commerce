@@ -195,6 +195,7 @@ namespace Application.Services.Implementation
 
             var order = await _orderRepository.GetQuery().Include(o => o.OrderDetails)
                 .ThenInclude(d => d.ProductVariant).ThenInclude(v => v.Product).FirstAsync(o => o.Id == result.order_id);
+            
             foreach (var item in order.OrderDetails)
             {
                 item.ProductPrice = item.ProductVariant.Product.Price;
@@ -209,7 +210,7 @@ namespace Application.Services.Implementation
                     SellDate = result.payment_time,
                     ProductPrice = item.ProductPrice,
                 });
-                // یکی از موجودی های انبار کم میشه
+                //  از موجودی های انبار کم میشه
                 item.ProductVariant.StockCount -= item.Count;
                 _variantRepository.UpdateEntity(item.ProductVariant);
                 await _variantRepository.SaveChanges();

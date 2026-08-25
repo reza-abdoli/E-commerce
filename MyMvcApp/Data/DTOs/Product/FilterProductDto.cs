@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using Data.DTOs.Paging;
 
 namespace Data.DTOs.Product
 {
-    public class FilterProductDto
+    public class FilterProductDto : BasePaging
     {
         public string Title { get; set; }
         public long? BrandId { get; set; }
@@ -21,7 +22,28 @@ namespace Data.DTOs.Product
         public FilterProductStatus ProductStatus { get; set; }
         public List<Data.Entities.Product> Data { get; set; }
 
+
+        public FilterProductDto SetData(List<Data.Entities.Product> data)
+        {
+            Data = data;
+            return this;
+        }
+
+        public FilterProductDto SetPaging(BasePaging paging)
+        {
+            PageId = paging.PageId;
+            AllEntitiesCount = paging.AllEntitiesCount;
+            StartPage = paging.StartPage;
+            EndPage = paging.EndPage;
+            HowManyShowPageAfterAndBefore = paging.HowManyShowPageAfterAndBefore;
+            TakeEntity = paging.TakeEntity;
+            SkipEntity = paging.SkipEntity;
+            PageCount = paging.PageCount;
+            return this;
+        }
     }
+
+
     public enum FilterProductStatus
     {
         [Display(Name = "همه")]
