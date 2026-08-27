@@ -22,6 +22,8 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICommonService, CommonService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IPaymentFacadeService, PaymentFacadeService>();
 
 builder.Services.AddAuthentication(options =>
 {

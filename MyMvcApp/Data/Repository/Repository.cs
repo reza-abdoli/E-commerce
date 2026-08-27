@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Data.Context;
 using Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Data.Repository
 {
@@ -62,6 +63,21 @@ namespace Data.Repository
         {
             entity.UpdatedAt = DateTime.UtcNow;
             _dBSet.Update(entity);
+        }
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync()
+        {
+            return await _applicationDbContext.Database.BeginTransactionAsync();
+        }
+
+        public async Task CommitTransactionAsync()
+        {
+            await _applicationDbContext.Database.CommitTransactionAsync();
+        }
+
+        public async Task RollbackTransactionAsync()
+        {
+            await _applicationDbContext.Database.RollbackTransactionAsync();
         }
     }
 }

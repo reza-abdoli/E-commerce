@@ -192,50 +192,65 @@ namespace Application.Services.Implementation
 
         public async Task UpdatePaidOrder(SuccessPaymentResult result, long recordId)
         {
+            var order = await _orderRepository.GetQuery()
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(d => d.ProductVariant)
+                        .ThenInclude(v => v.Product)
+                .FirstOrDefaultAsync(o => o.Id == result.order_id);
 
-            var order = await _orderRepository.GetQuery().Include(o => o.OrderDetails)
-                .ThenInclude(d => d.ProductVariant).ThenInclude(v => v.Product).FirstAsync(o => o.Id == result.order_id);
-            
+            if (order == null)
+            {
+                throw new InvalidOperationException($"Order with ID {result.order_id} was not found.");
+            }
+
             foreach (var item in order.OrderDetails)
             {
-                item.ProductPrice = item.ProductVariant.Product.Price;
-                item.TotalPrice = item.ProductPrice * item.Count;
+                var currentProductPrice = item.ProductVariant.Product.Price;
+
+                item.ProductPrice = currentProductPrice;
+                item.TotalPrice = currentProductPrice * item.Count;
                 _orderDetailRepository.UpdateEntity(item);
-                await _orderDetailRepository.SaveChanges();
+
                 await _productSellRepository.AddEntity(new ProductSell
                 {
                     ProductId = item.ProductVariant.ProductId,
                     OrderId = order.Id,
                     SellCount = item.Count,
                     SellDate = result.payment_time,
-                    ProductPrice = item.ProductPrice,
+                    ProductPrice = currentProductPrice
                 });
-                //  از موجودی های انبار کم میشه
-                item.ProductVariant.StockCount -= item.Count;
-                _variantRepository.UpdateEntity(item.ProductVariant);
-                await _variantRepository.SaveChanges();
+
+                // Atomic stock deduction to prevent race conditions
+                int affectedRows = await _variantRepository.GetQuery()
+                    .Where(v => v.Id == item.ProductVariantId && v.StockCount >= item.Count)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(v => v.StockCount, v => v.StockCount - item.Count));
+
+                if (affectedRows == 0)
+                {
+                    throw new InvalidOperationException($"Insufficient stock for product '{item.ProductVariant.Product.Title}'.");
+                }
             }
-            await _productSellRepository.SaveChanges();
+
             var user = await _userRepository.GetEntityById(order.UserId);
-            order.Address = user.Address;
-            order.PostCode = user.PostCode;
-            order.DestinationCity = user.UserCity;
-            order.UserName = user.FullName;
+            if (user != null)
+            {
+                order.Address = user.Address;
+                order.PostCode = user.PostCode;
+                order.DestinationCity = user.UserCity;
+                order.UserName = user.FullName;
+            }
+
             order.OrderState = OrderState.Paid;
             order.PaymentDate = result.payment_time;
             order.PaymentRecordId = recordId;
             order.TransactionId = result.trans_id;
-
-            var totalPrice = order.OrderDetails.Select(item => item.ProductVariant.Product.Price * item.Count)
-                .Aggregate(0, (current, price) => current + price);
-            order.TotalPrice = totalPrice;
+            order.TotalPrice = order.OrderDetails.Sum(item => item.ProductPrice * item.Count);
 
             _orderRepository.UpdateEntity(order);
-            await _orderRepository.SaveChanges();
 
-            _logger.LogInformation(
-                "Order paid successfully. OrderId: {OrderId}, UserId: {UserId}, TotalPrice: {TotalPrice}, TransactionId: {TransactionId}, PaymentRecordId: {PaymentRecordId}",
-                order.Id, order.UserId, order.TotalPrice, order.TransactionId, recordId);
+            // Persist all untracked/pending changes (Order, OrderDetails, ProductSell)
+            await _orderRepository.SaveChanges();
         }
 
         public async Task<List<Order>> GetUserPaidOrders(long userId)
@@ -366,5 +381,10 @@ namespace Application.Services.Implementation
         {
             await UpdatePaidOrder(result, recordId);
         }
+
+        // public Task BeginTransactionAsync()
+        // {
+        //     return awa _orderRepository.BeginTransactionAsync();
+        // }
     }
 }

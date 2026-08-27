@@ -1,13 +1,11 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Application.Services.Interface;
 using Data.DTOs.Account;
-using Data.DTOs.Order;
 using Data.Entities.Order;
 using Microsoft.AspNetCore.Mvc;
+
 
 namespace Presentation.Areas.User.Controllers
 {
@@ -16,12 +14,19 @@ namespace Presentation.Areas.User.Controllers
         private readonly IUserService _userService;
         private readonly IOrderService _orderService;
         private readonly IPaymentService _paymentService;
+        private readonly IPaymentFacadeService _paymentFacadeService;
 
-        public PaymentController(IUserService userService, IOrderService orderService, IPaymentService paymentService)
+
+        public PaymentController(
+            IUserService userService,
+            IOrderService orderService,
+            IPaymentService paymentService,
+            IPaymentFacadeService paymentFacadeService)
         {
             _userService = userService;
             _orderService = orderService;
             _paymentService = paymentService;
+            _paymentFacadeService = paymentFacadeService;
         }
 
         [HttpGet("pay-order")]
@@ -32,13 +37,15 @@ namespace Presentation.Areas.User.Controllers
 
             if (openOrder == null)
             {
-                TempData[ErrorMessage] = "سبد خرید شما خالی است";
+                TempData[ErrorMessage] = "Your shopping cart is empty.";
                 return RedirectToAction("Cart", "Order");
             }
 
-            if (openOrder.TotalCartPrice() * 10 > 1000000000)
+
+            // Maximum allowable order amount check (100M Tomans)
+            if (openOrder.TotalCartPrice() > 100000000)
             {
-                TempData[ErrorMessage] = "سفارشی که بیش از 100 میلیون تومان باشد قابل پرداخت نیست.";
+                TempData[ErrorMessage] = "Orders exceeding 100 million Tomans cannot be paid.";
                 return RedirectToAction("Cart", "Order");
             }
 
@@ -46,23 +53,35 @@ namespace Presentation.Areas.User.Controllers
             {
                 if (openOrder.TotalCartPrice() > await _userService.GetUserBalance(userId))
                 {
-                    TempData[ErrorMessage] = "موجودی کیف پول شما کافی نیست.";
+                    TempData[ErrorMessage] = "Your wallet balance is insufficient.";
                     return RedirectToAction("Index", "Home");
                 }
                 var result = new SuccessPaymentResult
                 {
                     trans_id = Random.Shared.NextInt64(1000000000, 9999999999),
-                    amount = openOrder.TotalCartPrice() * 10,
+                    amount = openOrder.TotalCartPrice(),
                     order_id = openOrder.Order.Id,
                     buyer_id = userId,
                     payment_time = DateTime.UtcNow
                 };
-                var recordId = await _paymentService.SavePaymentRecord(result);
-                await _orderService.ProcessSuccessfulOrder(result, recordId);
-                await _userService.WithdrawBalance(userId, openOrder.TotalCartPrice());
-                TempData[SuccessMessage] = "پرداخت شما با موفقیت انجام شد.";
-                return RedirectToAction("PaidOrders", "Order", new { area = "User" });
 
+
+                // Execute atomic wallet payment process via Facade
+                var isSuccess = await _paymentFacadeService.PayOrderWithWalletAsync(
+                    userId,
+                    openOrder.TotalCartPrice(),
+                    result);
+
+
+                if (isSuccess)
+                {
+                    TempData[SuccessMessage] = "Your payment was successful.";
+                    return RedirectToAction("PaidOrders", "Order", new { area = "User" });
+                }
+
+
+                TempData[ErrorMessage] = "An error occurred while processing the payment or inventory.";
+                return RedirectToAction("Cart", "Order");
             }
 
             return View(openOrder);
@@ -73,23 +92,41 @@ namespace Presentation.Areas.User.Controllers
         {
             if (!isSuccess)
             {
-                TempData[ErrorMessage] = "پرداخت شما ناموفق بود.";
+                TempData[ErrorMessage] = "Your payment was unsuccessful.";
                 return RedirectToAction("Cart", "Order", new { area = "User" });
             }
             var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var openOrder = await _orderService.UserOpenOrderDetail(userId);
+
+            if (openOrder == null)
+            {
+                TempData[ErrorMessage] = "No order was found.";
+                return RedirectToAction("Cart", "Order", new { area = "User" });
+            }
+
             var result = new SuccessPaymentResult
             {
                 trans_id = Random.Shared.NextInt64(1000000000, 9999999999),
-                amount = openOrder.TotalCartPrice() * 10,
+                amount = openOrder.TotalCartPrice(),
                 order_id = openOrder.Order.Id,
                 buyer_id = userId,
                 payment_time = DateTime.UtcNow
             };
-            var recordId = await _paymentService.SavePaymentRecord(result);
-            await _orderService.ProcessSuccessfulOrder(result, recordId);
-            TempData[SuccessMessage] = "پرداخت شما با موفقیت انجام شد.";
-            return RedirectToAction("PaidOrders", "Order", new { area = "User" });
+
+
+            // Finalize online order payment via Facade transaction
+            var isFinalized = await _paymentFacadeService.FinalizeOnlineOrderPaymentAsync(result);
+
+
+            if (isFinalized)
+            {
+                TempData[SuccessMessage] = "Your payment was successful.";
+                return RedirectToAction("PaidOrders", "Order", new { area = "User" });
+            }
+
+
+            TempData[ErrorMessage] = "An error occurred while finalizing the order or deducting inventory.";
+            return RedirectToAction("Cart", "Order", new { area = "User" });
         }
 
         [HttpPost("add-balance")]
@@ -98,14 +135,18 @@ namespace Presentation.Areas.User.Controllers
             if (!ModelState.IsValid)
                 return RedirectToAction("Index", "Home");
 
+
             if (dto.Amount < 0)
             {
-                TempData[ErrorMessage] = "Could not be negetive!";
+                TempData[ErrorMessage] = "Amount cannot be negative!";
                 return RedirectToAction("Index", "Home");
             }
+
+
             var result = await _userService.IsProfileDetailCompleted(long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value));
             if (!result)
                 return RedirectToAction("EditUserDetail", "Account", new { area = "User" });
+
 
             return View("PayBalance", dto);
         }
@@ -116,21 +157,32 @@ namespace Presentation.Areas.User.Controllers
         {
             if (isSuccess)
             {
-                SuccessPaymentResult result = new SuccessPaymentResult
+                var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+                var result = new SuccessPaymentResult
                 {
                     trans_id = Random.Shared.NextInt64(1000000000, 9999999999),
                     amount = dto.Amount * 10,
-                    buyer_id = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value),
+                    buyer_id = userId,
                     payment_time = DateTime.UtcNow
                 };
-                await _paymentService.SavePaymentRecord(result);
-                await _userService.DepositBalance(dto);
-                TempData[SuccessMessage] = "پرداخت شما با موفقیت انجام شد.";
+
+                var isDeposited = await _paymentFacadeService.DepositWalletBalanceAsync(dto, result);
+
+                if (isDeposited)
+                {
+                    TempData[SuccessMessage] = "Account balance was successfully charged.";
+                }
+                else
+                {
+                    TempData[ErrorMessage] = "An error occurred while charging your account balance.";
+                }
             }
             else
             {
-                TempData[ErrorMessage] = "پرداخت شما ناموفق بود.";
+                TempData[ErrorMessage] = "Your payment was unsuccessful.";
             }
+
             return RedirectToAction("Index", "Home", new { area = "User" });
         }
     }

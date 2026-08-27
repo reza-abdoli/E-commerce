@@ -134,15 +134,22 @@ public class UserService : IUserService
     }
     public async Task DepositBalance(DepositBalanceDto dto)
     {
-        var user = await _userRepository.GetEntityById(dto.Id);
-        var oldBalance = user.Balance;
-        user.Balance += dto.Amount;
-        _userRepository.UpdateEntity(user);
-        await _userRepository.SaveChanges();
+        if (dto.Amount <= 0)
+        {
+            throw new ArgumentException("Deposit amount must be greater than zero.", nameof(dto.Amount));
+        }
 
-        _logger.LogInformation(
-            "Balance deposited. UserId: {UserId}, Amount: {Amount}, OldBalance: {OldBalance}, NewBalance: {NewBalance}",
-            dto.Id, dto.Amount, oldBalance, user.Balance);
+        int affectedRows = await _userRepository.GetQuery()
+            .Where(u => u.Id == dto.Id)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(u => u.Balance, u => u.Balance + dto.Amount));
+
+        if (affectedRows == 0)
+        {
+            throw new InvalidOperationException($"User with ID {dto.Id} was not found.");
+        }
+
+        _logger.LogInformation("Balance deposited atomically. UserId: {UserId}, Amount: {Amount}", dto.Id, dto.Amount);
     }
 
     public async Task<int> GetUserBalance(long userId)
@@ -153,14 +160,24 @@ public class UserService : IUserService
 
     public async Task WithdrawBalance(long userId, int amount)
     {
-        var user = await _userRepository.GetEntityById(userId);
-        var oldBalance = user.Balance;
-        user.Balance -= amount;
-        _userRepository.UpdateEntity(user);
-        await _userRepository.SaveChanges();
+        // Atomic update at database level to prevent race conditions & negative balance
+        int affectedRows = await _userRepository.GetQuery()
+            .Where(u => u.Id == userId && u.Balance >= amount)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(u => u.Balance, u => u.Balance - amount));
 
-        _logger.LogInformation(
-            "Balance withdrawn. UserId: {UserId}, Amount: {Amount}, OldBalance: {OldBalance}, NewBalance: {NewBalance}",
-            userId, amount, oldBalance, user.Balance);
+        if (affectedRows == 0)
+        {
+            var userExists = await _userRepository.GetQuery().AnyAsync(u => u.Id == userId);
+
+            if (!userExists)
+            {
+                throw new InvalidOperationException($"User with ID {userId} was not found.");
+            }
+
+            throw new InvalidOperationException("Insufficient wallet balance for this transaction.");
+        }
+
+        _logger.LogInformation("Balance withdrawn atomically. UserId: {UserId}, Amount: {Amount}", userId, amount);
     }
 }
