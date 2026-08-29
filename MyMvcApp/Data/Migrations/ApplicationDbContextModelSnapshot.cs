@@ -128,7 +128,7 @@ namespace Data.Migrations
                     b.Property<DateTime?>("PaymentDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<long?>("PaymentRecordId")
+                    b.Property<long?>("PaymentTransactionId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("PostCode")
@@ -154,12 +154,14 @@ namespace Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PaymentTransactionId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Order");
                 });
 
-            modelBuilder.Entity("Data.Entities.Order.PaymentRecord", b =>
+            modelBuilder.Entity("Data.Entities.Order.PaymentTransaction", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -170,8 +172,9 @@ namespace Data.Migrations
                     b.Property<int>("Amount")
                         .HasColumnType("int");
 
-                    b.Property<long>("BuyerId")
-                        .HasColumnType("bigint");
+                    b.Property<string>("Authority")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -182,55 +185,25 @@ namespace Data.Migrations
                     b.Property<long?>("OrderId")
                         .HasColumnType("bigint");
 
-                    b.Property<DateTime>("PaymentTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<long>("TransactionId")
+                    b.Property<long?>("OrderId1")
                         .HasColumnType("bigint");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PaymentRecord");
-                });
-
-            modelBuilder.Entity("Data.Entities.Order.SuccessPaymentResult", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("amount")
+                    b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<long>("buyer_id")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("order_id")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("payment_time")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<long>("trans_id")
+                    b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.ToTable("SuccessPaymentResult");
+                    b.HasIndex("OrderId1");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PaymentTransaction");
                 });
 
             modelBuilder.Entity("Data.Entities.OrderDetail", b =>
@@ -688,11 +661,34 @@ namespace Data.Migrations
 
             modelBuilder.Entity("Data.Entities.Order.Order", b =>
                 {
+                    b.HasOne("Data.Entities.Order.PaymentTransaction", "PaymentTransaction")
+                        .WithMany()
+                        .HasForeignKey("PaymentTransactionId");
+
                     b.HasOne("Data.Entities.User.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("PaymentTransaction");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Data.Entities.Order.PaymentTransaction", b =>
+                {
+                    b.HasOne("Data.Entities.Order.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId1");
+
+                    b.HasOne("Data.Entities.User.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
 
                     b.Navigation("User");
                 });

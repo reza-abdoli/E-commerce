@@ -8,6 +8,9 @@ namespace Application.Services.Interface
 {
     public interface IPaymentService : IAsyncDisposable
     {
-        Task<long> SavePaymentRecord(SuccessPaymentResult dto);
+        Task<PaymentTransaction> CreatePendingTransactionAsync(long userId, long? orderId, int amount, string authority);
+        Task<PaymentTransaction?> GetTransactionByAuthorityAsync(string authority);
+        Task UpdateTransactionStatusAsync(long transactionId, PaymentStatus status);
+        Task MarkTransactionAsFailedAsync(long transactionId);
     }
 }

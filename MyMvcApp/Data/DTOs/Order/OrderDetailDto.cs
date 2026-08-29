@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Data.Entities;
 using Data.Entities.Order;
 using Data.Entities.User;
@@ -22,7 +20,7 @@ namespace Data.DTOs.Order
         public string? Description { get; set; }
         public string? PostTraceCode { get; set; }
         public string BankTraceCode { get; set; }
-        public PaymentRecord PaymentRecord { get; set; }
+        public PaymentTransaction? PaymentTransaction { get; set; }
         public OrderState OrderState { get; set; }
         public User User { get; set; }
         public List<OrderDetail> OrderDetails { get; set; }

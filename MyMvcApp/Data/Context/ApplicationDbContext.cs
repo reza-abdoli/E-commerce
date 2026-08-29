@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Data.Entities;
 using Data.Entities.Common;
 using Data.Entities.Order;
@@ -31,15 +30,13 @@ namespace Data.Context
         public DbSet<Order> Order { get; set; }
         public DbSet<OrderDetail> OrderDetail { get; set; }
         public DbSet<ProductSell> ProductSell { get; set; }
-        public DbSet<PaymentRecord> PaymentRecord { get; set; }
-        public DbSet<SuccessPaymentResult> SuccessPaymentResult { get; set; }
-
+        public DbSet<PaymentTransaction> PaymentTransaction { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             var cascadeFKs = modelBuilder.Model.GetEntityTypes()
-    .SelectMany(t => t.GetForeignKeys())
-    .Where(fk => !fk.IsOwnership && fk.DeleteBehavior == DeleteBehavior.Cascade);
+                .SelectMany(t => t.GetForeignKeys())
+                .Where(fk => !fk.IsOwnership && fk.DeleteBehavior == DeleteBehavior.Cascade);
 
             foreach (var fk in cascadeFKs)
                 fk.DeleteBehavior = DeleteBehavior.Restrict;
@@ -50,7 +47,12 @@ namespace Data.Context
                 .HasForeignKey(p => p.BrandId)
                 .IsRequired(false);
 
-            modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.PaymentTransaction)
+                .WithMany()
+                .HasForeignKey(o => o.PaymentTransactionId)
+                .IsRequired(false);
+
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
             modelBuilder.Entity<Brand>().HasQueryFilter(b => !b.IsDeleted);
             modelBuilder.Entity<Product>().HasQueryFilter(p => !p.IsDeleted);
@@ -65,10 +67,7 @@ namespace Data.Context
             modelBuilder.Entity<Order>().HasQueryFilter(pv => !pv.IsDeleted);
             modelBuilder.Entity<OrderDetail>().HasQueryFilter(pv => !pv.IsDeleted);
             modelBuilder.Entity<ProductSell>().HasQueryFilter(pv => !pv.IsDeleted);
-            modelBuilder.Entity<PaymentRecord>().HasQueryFilter(pv => !pv.IsDeleted);
-            modelBuilder.Entity<SuccessPaymentResult>().HasQueryFilter(pv => !pv.IsDeleted);
-
-
+            modelBuilder.Entity<PaymentTransaction>().HasQueryFilter(pv => !pv.IsDeleted);
         }
     }
 }

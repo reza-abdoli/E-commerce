@@ -21,13 +21,18 @@ namespace Application.Services.Implementation
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<ProductVariant> _variantRepository;
         private readonly IRepository<ProductSell> _productSellRepository;
-        private readonly IRepository<PaymentRecord> _paymentRecordRepository;
+        private readonly IRepository<PaymentTransaction> _paymentTransactionRepository;
         private readonly ILogger<OrderService> _logger;
 
-        public OrderService(IRepository<User> userRepository, IRepository<Order> orderRepository,
-            IRepository<OrderDetail> orderDetailRepository, IRepository<Product> productRepository,
-            IRepository<ProductVariant> variantRepository, IRepository<ProductSell> productSellRepository,
-            IRepository<PaymentRecord> paymentRecordRepository, ILogger<OrderService> logger)
+        public OrderService(
+            IRepository<User> userRepository,
+            IRepository<Order> orderRepository,
+            IRepository<OrderDetail> orderDetailRepository,
+            IRepository<Product> productRepository,
+            IRepository<ProductVariant> variantRepository,
+            IRepository<ProductSell> productSellRepository,
+            IRepository<PaymentTransaction> paymentTransactionRepository,
+            ILogger<OrderService> logger)
         {
             _userRepository = userRepository;
             _orderRepository = orderRepository;
@@ -35,7 +40,7 @@ namespace Application.Services.Implementation
             _productRepository = productRepository;
             _variantRepository = variantRepository;
             _productSellRepository = productSellRepository;
-            _paymentRecordRepository = paymentRecordRepository;
+            _paymentTransactionRepository = paymentTransactionRepository;
             _logger = logger;
         }
 
@@ -47,15 +52,16 @@ namespace Application.Services.Implementation
             await _productRepository.DisposeAsync();
             await _variantRepository.DisposeAsync();
             await _productSellRepository.DisposeAsync();
-            await _paymentRecordRepository.DisposeAsync();
+            await _paymentTransactionRepository.DisposeAsync();
         }
 
-        // ─── تغییر: حالا orderDetailId برمیگرده ───
         public async Task<long> AddProductToOrder(SubmitOrderDetailDto dto)
         {
             var orderId = await this.GetOrCreateOrderForUser(dto.UserId);
-            var variantCount = await _variantRepository.GetQuery().Where(v => v.Id == dto.ProductVariantId)
-            .Select(v => v.StockCount).SingleOrDefaultAsync();
+            var variantCount = await _variantRepository.GetQuery()
+                .Where(v => v.Id == dto.ProductVariantId)
+                .Select(v => v.StockCount)
+                .SingleOrDefaultAsync();
 
             if (!(variantCount > 0))
             {
@@ -97,13 +103,10 @@ namespace Application.Services.Implementation
 
         public async Task<bool> CheckOrderDetailExists(long userId, long productVariantId)
         {
-            return await _orderRepository.GetQuery().Where(o => o.UserId == userId && o.OrderState == OrderState.Open)
+            return await _orderRepository.GetQuery()
+                .Where(o => o.UserId == userId && o.OrderState == OrderState.Open)
                 .Include(o => o.OrderDetails)
                 .AnyAsync(o => o.OrderDetails.Any(od => od.ProductVariantId == productVariantId));
-
-            // return await _orderRepository.GetQuery().Include(o => o.OrderDetails)
-            //     .Where(o => o.UserId == userId)
-            //     .AnyAsync(o => o.OrderDetails.Any(od => od.ProductVariantId == productVariantId));
         }
 
         public async Task<long> GetOrCreateOrderForUser(long userId)
@@ -140,14 +143,18 @@ namespace Application.Services.Implementation
             }
             else
             {
-                var variantCount = await _orderDetailRepository.GetQuery().Include(o => o.ProductVariant)
-                .Where(o => o.Id == orderDetailId)
-                .Select(o => o.ProductVariant.StockCount).SingleOrDefaultAsync();
+                var variantCount = await _orderDetailRepository.GetQuery()
+                    .Include(o => o.ProductVariant)
+                    .Where(o => o.Id == orderDetailId)
+                    .Select(o => o.ProductVariant.StockCount)
+                    .SingleOrDefaultAsync();
+
                 if (variantCount < count)
                 {
                     _logger.LogWarning("Order detail count change failed: not enough stock. OrderDetailId: {OrderDetailId}, RequestedCount: {RequestedCount}, StockCount: {StockCount}", orderDetailId, count, variantCount);
                     return false;
                 }
+
                 var oldCount = orderDetail.Count;
                 orderDetail.Count = count;
                 orderDetail.TotalPrice = orderDetail.ProductPrice * count;
@@ -164,19 +171,19 @@ namespace Application.Services.Implementation
             var order = await _orderRepository.GetQuery()
                 .Where(o => o.UserId == userId && o.OrderState == OrderState.Open)
                 .FirstOrDefaultAsync();
+
             if (order == null) return null;
 
-            var detail = await _orderDetailRepository.GetQuery()
+            return await _orderDetailRepository.GetQuery()
                 .Where(d => d.OrderId == order.Id && d.ProductVariantId == productVariantId)
                 .FirstOrDefaultAsync();
-
-            return detail == null ? null : detail;
         }
 
         public async Task<OpenOrderDto?> UserOpenOrderDetail(long userId)
         {
             var order = await _orderRepository.GetQuery()
                 .FirstOrDefaultAsync(d => d.UserId == userId && d.OrderState == OrderState.Open);
+
             if (order == null) return null;
 
             return new OpenOrderDto
@@ -186,22 +193,25 @@ namespace Application.Services.Implementation
                 OrderDetails = await _orderDetailRepository.GetQuery()
                     .Include(d => d.ProductVariant)
                     .ThenInclude(v => v.Product)
-                    .Where(d => d.OrderId == order.Id).ToListAsync()
+                    .Where(d => d.OrderId == order.Id)
+                    .ToListAsync()
             };
         }
 
-        public async Task UpdatePaidOrder(SuccessPaymentResult result, long recordId)
+        public async Task UpdatePaidOrder(long orderId, long userId, long paymentTransactionId)
         {
             var order = await _orderRepository.GetQuery()
                 .Include(o => o.OrderDetails)
                     .ThenInclude(d => d.ProductVariant)
                         .ThenInclude(v => v.Product)
-                .FirstOrDefaultAsync(o => o.Id == result.order_id);
+                .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
 
             if (order == null)
             {
-                throw new InvalidOperationException($"Order with ID {result.order_id} was not found.");
+                throw new InvalidOperationException($"Order with ID {orderId} for User {userId} was not found.");
             }
+
+            var now = DateTime.UtcNow;
 
             foreach (var item in order.OrderDetails)
             {
@@ -216,7 +226,7 @@ namespace Application.Services.Implementation
                     ProductId = item.ProductVariant.ProductId,
                     OrderId = order.Id,
                     SellCount = item.Count,
-                    SellDate = result.payment_time,
+                    SellDate = now,
                     ProductPrice = currentProductPrice
                 });
 
@@ -232,7 +242,7 @@ namespace Application.Services.Implementation
                 }
             }
 
-            var user = await _userRepository.GetEntityById(order.UserId);
+            var user = await _userRepository.GetEntityById(userId);
             if (user != null)
             {
                 order.Address = user.Address;
@@ -242,35 +252,30 @@ namespace Application.Services.Implementation
             }
 
             order.OrderState = OrderState.Paid;
-            order.PaymentDate = result.payment_time;
-            order.PaymentRecordId = recordId;
-            order.TransactionId = result.trans_id;
+            order.PaymentDate = now;
+            order.PaymentTransactionId = paymentTransactionId;
             order.TotalPrice = order.OrderDetails.Sum(item => item.ProductPrice * item.Count);
 
             _orderRepository.UpdateEntity(order);
-
-            // Persist all untracked/pending changes (Order, OrderDetails, ProductSell)
             await _orderRepository.SaveChanges();
         }
 
         public async Task<List<Order>> GetUserPaidOrders(long userId)
         {
-            return await _orderRepository.GetQuery().Where(o => o.UserId == userId && o.OrderState == OrderState.Paid)
+            return await _orderRepository.GetQuery()
+                .Where(o => o.UserId == userId && o.OrderState == OrderState.Paid)
                 .Include(o => o.OrderDetails)
-                .ThenInclude(d => d.ProductVariant)
-                .ThenInclude(v => v.Product)
+                    .ThenInclude(d => d.ProductVariant)
+                        .ThenInclude(v => v.Product)
                 .ToListAsync();
         }
 
         public async Task<FilterOrderDto> FilterOrders(FilterOrderDto filter)
         {
             var query = _orderRepository.GetQuery()
-            .Include(o => o.OrderDetails)
-            // .Where(o => o.OrderState != OrderState.Open)
-            .OrderByDescending(d => d.CreatedAt)
-            .AsQueryable();
-
-
+                .Include(o => o.OrderDetails)
+                .OrderByDescending(d => d.CreatedAt)
+                .AsQueryable();
 
             switch (filter.FilterOrderState)
             {
@@ -298,12 +303,10 @@ namespace Application.Services.Implementation
                     throw new ArgumentOutOfRangeException();
             }
 
-
             if (!string.IsNullOrEmpty(filter.UserName))
             {
                 query = query.Where(p => EF.Functions.Like(p.UserName, $"%{filter.UserName}%"));
             }
-
 
             if (filter.TransactionId is > 0)
             {
@@ -312,7 +315,7 @@ namespace Application.Services.Implementation
 
             if (filter.PaymentRecordId is > 0)
             {
-                query = query.Where(o => o.PaymentRecordId == filter.PaymentRecordId);
+                query = query.Where(o => o.PaymentTransactionId == filter.PaymentRecordId);
             }
 
             if (!string.IsNullOrEmpty(filter.DestinationCity))
@@ -320,12 +323,10 @@ namespace Application.Services.Implementation
                 query = query.Where(p => EF.Functions.Like(p.DestinationCity, $"%{filter.DestinationCity}%"));
             }
 
-
             if (filter.MinimumPrice is > 0)
             {
                 query = query.Where(d => d.TotalPrice > filter.MinimumPrice);
             }
-
 
             if (filter.UserId is > 0)
             {
@@ -339,6 +340,7 @@ namespace Application.Services.Implementation
         public async Task<OrderDetailDto> OrderDetail(long orderId)
         {
             var data = await _orderRepository.GetEntityById(orderId);
+
             return new OrderDetailDto
             {
                 Address = data.Address,
@@ -351,15 +353,17 @@ namespace Application.Services.Implementation
                 UserId = data.UserId,
                 PostCode = data.PostCode,
                 PostTraceCode = data.PostTraceCode,
-                BankTraceCode = data.TransactionId.ToString(),
+                BankTraceCode = data.TransactionId?.ToString() ?? string.Empty,
                 LastUpdateDate = data.UpdatedAt,
                 DestinationCity = data.DestinationCity,
                 User = await _userRepository.GetEntityById(data.UserId),
                 OrderDetails = await _orderDetailRepository.GetQuery()
                     .Include(d => d.ProductVariant)
-                    .ThenInclude(v => v.Product)
-                    .Where(d => d.OrderId == orderId).ToListAsync(),
-                PaymentRecord = await _paymentRecordRepository.GetQuery().FirstOrDefaultAsync(r => r.OrderId == orderId)
+                        .ThenInclude(v => v.Product)
+                    .Where(d => d.OrderId == orderId)
+                    .ToListAsync(),
+                PaymentTransaction = await _paymentTransactionRepository.GetQuery()
+                    .FirstOrDefaultAsync(r => r.OrderId == orderId && r.Status == PaymentStatus.Success)
             };
         }
 
@@ -374,17 +378,5 @@ namespace Application.Services.Implementation
 
             _logger.LogInformation("Order state changed. OrderId: {OrderId}, OldState: {OldState}, NewState: {NewState}", orderId, oldState, orderState);
         }
-
-
-
-        public async Task ProcessSuccessfulOrder(SuccessPaymentResult result, long recordId)
-        {
-            await UpdatePaidOrder(result, recordId);
-        }
-
-        // public Task BeginTransactionAsync()
-        // {
-        //     return awa _orderRepository.BeginTransactionAsync();
-        // }
     }
 }

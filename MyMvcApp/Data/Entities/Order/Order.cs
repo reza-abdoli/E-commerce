@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Data.Entities.Order
 {
@@ -17,11 +16,18 @@ namespace Data.Entities.Order
         public string? Description { get; set; }
         public string? PostTraceCode { get; set; }
         public long? TransactionId { get; set; }
-        public long? PaymentRecordId { get; set; }
+
+        public long? PaymentTransactionId { get; set; }
+
+        [ForeignKey(nameof(PaymentTransactionId))]
+        public virtual PaymentTransaction? PaymentTransaction { get; set; }
+
         public DateTime? PaymentDate { get; set; }
         public OrderState OrderState { get; set; }
-        public User.User User { get; set; }
-        public ICollection<OrderDetail> OrderDetails { get; set; }
+
+        [ForeignKey(nameof(UserId))]
+        public virtual User.User User { get; set; }
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
     }
 
     public enum OrderState
@@ -34,7 +40,7 @@ namespace Data.Entities.Order
         Pending,
         [Display(Name = "ارسال شده")]
         Sent,
-        [Display(Name = "موجوع شده")]
+        [Display(Name = "مرجوع شده")]
         Returned,
         [Display(Name = "لغو شده")]
         Canceled,

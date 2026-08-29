@@ -9,8 +9,8 @@ namespace Application.Services.Interface
 {
     public interface IPaymentFacadeService
     {
-        Task<bool> PayOrderWithWalletAsync(long userId, int totalCartPrice, SuccessPaymentResult paymentResult);
-        Task<bool> FinalizeOnlineOrderPaymentAsync(SuccessPaymentResult paymentResult);
-        Task<bool> DepositWalletBalanceAsync(DepositBalanceDto dto, SuccessPaymentResult paymentResult);
+        Task<bool> PayOrderWithWalletAsync(long userId, int totalCartPrice, long orderId);
+        Task<bool> FinalizeOnlineOrderPaymentAsync(PaymentTransaction transaction);
+        Task<bool> DepositWalletBalanceAsync(PaymentTransaction transaction);
     }
 }

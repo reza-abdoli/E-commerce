@@ -1,7 +1,7 @@
-@* Views/Areas/User/Payment/PayBalance.cshtml *@
 @model Data.DTOs.Account.DepositBalanceDto
 @{
     Layout = null;
+    var authority = ViewBag.Authority as string;
 }
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -18,70 +18,38 @@
         body {
             font-family: 'Vazirmatn', sans-serif;
             background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
         }
         .gateway-card {
-            background: #fff;
-            border-radius: 20px;
-            width: 100%;
-            max-width: 440px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
+            background: #fff; border-radius: 20px; width: 100%; max-width: 440px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3); overflow: hidden;
         }
         .gateway-header {
             background: linear-gradient(135deg, #1b5e20, #388e3c);
-            padding: 1.5rem 2rem;
-            color: #fff;
+            padding: 1.5rem 2rem; color: #fff;
         }
         .gateway-body { padding: 2rem; }
         .wallet-logo {
-            width: 48px; height: 48px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 22px;
+            width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
         }
         .amount-box {
-            background: #f1f8e9;
-            border: 2px dashed #a5d6a7;
-            border-radius: 12px;
-            padding: 1.25rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
+            background: #f1f8e9; border: 2px dashed #a5d6a7; border-radius: 12px;
+            padding: 1.25rem; text-align: center; margin-bottom: 1.5rem;
         }
-        .amount-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #1b5e20;
-            letter-spacing: -1px;
-        }
+        .amount-value { font-size: 2rem; font-weight: 700; color: #1b5e20; letter-spacing: -1px; }
         .sim-badge {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 8px;
-            padding: .5rem 1rem;
-            font-size: 12px;
-            color: #856404;
-            text-align: center;
-            margin-bottom: 1.5rem;
+            background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;
+            padding: .5rem 1rem; font-size: 12px; color: #856404; text-align: center; margin-bottom: 1.5rem;
         }
         .btn-success-pay {
-            background: linear-gradient(135deg, #2e7d32, #43a047);
-            border: none; color: #fff;
-            border-radius: 12px; padding: .75rem;
-            font-size: 14px; font-weight: 600;
-            transition: opacity .2s;
+            background: linear-gradient(135deg, #2e7d32, #43a047); border: none; color: #fff;
+            border-radius: 12px; padding: .75rem; font-size: 14px; font-weight: 600; transition: opacity .2s;
         }
         .btn-success-pay:hover { opacity: .9; color: #fff; }
         .btn-fail-pay {
-            background: #fff;
-            border: 2px solid #dc3545; color: #dc3545;
-            border-radius: 12px; padding: .75rem;
-            font-size: 14px; font-weight: 600;
-            transition: all .2s;
+            background: #fff; border: 2px solid #dc3545; color: #dc3545;
+            border-radius: 12px; padding: .75rem; font-size: 14px; font-weight: 600; transition: all .2s;
         }
         .btn-fail-pay:hover { background: #dc3545; color: #fff; }
         .security-row {
@@ -93,7 +61,6 @@
 <body>
 
 <div class="gateway-card">
-
     <div class="gateway-header">
         <div class="d-flex align-items-center gap-3 mb-3">
             <div class="wallet-logo">
@@ -111,7 +78,6 @@
     </div>
 
     <div class="gateway-body">
-
         <div class="sim-badge">
             <i class="bi bi-exclamation-triangle me-1"></i>
             این یک درگاه شبیه‌سازی‌شده برای محیط توسعه است
@@ -136,25 +102,23 @@
             </div>
         </div>
 
-        @* فرم پرداخت موفق *@
-        <form asp-area="User" asp-controller="Payment" asp-action="PayBalance" method="post" class="mb-2">
+        <!-- فرم پرداخت موفق -->
+        <form asp-area="User" asp-controller="Payment" asp-action="PayBalanceCallback" method="post" class="mb-2">
             @Html.AntiForgeryToken()
+            <input type="hidden" name="authority" value="@authority">
             <input type="hidden" name="isSuccess" value="true">
-            <input type="hidden" name="dto.Amount" value="@Model.Amount">
-            <input type="hidden" name="dto.Id" value="@Model.Id">
             <button type="submit" class="btn btn-success-pay w-100">
-                <i class="bi bi-check-circle me-2"></i>شبیه‌سازی پرداخت موفق
+                <i class="bi bi-check-circle me-2"></i>شبیه‌سازی شارژ موفق
             </button>
         </form>
 
-        @* فرم پرداخت ناموفق *@
-        <form asp-area="User" asp-controller="Payment" asp-action="PayBalance" method="post">
+        <!-- فرم پرداخت ناموفق -->
+        <form asp-area="User" asp-controller="Payment" asp-action="PayBalanceCallback" method="post">
             @Html.AntiForgeryToken()
+            <input type="hidden" name="authority" value="@authority">
             <input type="hidden" name="isSuccess" value="false">
-            <input type="hidden" name="dto.Amount" value="@Model.Amount">
-            <input type="hidden" name="dto.Id" value="@Model.Id">
             <button type="submit" class="btn btn-fail-pay w-100">
-                <i class="bi bi-x-circle me-2"></i>شبیه‌سازی پرداخت ناموفق
+                <i class="bi bi-x-circle me-2"></i>شبیه‌سازی شارژ ناموفق
             </button>
         </form>
 

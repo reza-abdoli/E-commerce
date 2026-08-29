@@ -3,9 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Application.Services.Interface;
 using Data.DTOs.Account;
-using Data.Entities.Order;
 using Microsoft.AspNetCore.Mvc;
-
 
 namespace Presentation.Areas.User.Controllers
 {
@@ -42,13 +40,13 @@ namespace Presentation.Areas.User.Controllers
             }
 
 
-            // Maximum allowable order amount check (100M Tomans)
             if (openOrder.TotalCartPrice() > 100000000)
             {
                 TempData[ErrorMessage] = "Orders exceeding 100 million Tomans cannot be paid.";
                 return RedirectToAction("Cart", "Order");
             }
 
+            // Wallet Payment Logic
             if (isWalletPayment)
             {
                 if (openOrder.TotalCartPrice() > await _userService.GetUserBalance(userId))
@@ -56,22 +54,11 @@ namespace Presentation.Areas.User.Controllers
                     TempData[ErrorMessage] = "Your wallet balance is insufficient.";
                     return RedirectToAction("Index", "Home");
                 }
-                var result = new SuccessPaymentResult
-                {
-                    trans_id = Random.Shared.NextInt64(1000000000, 9999999999),
-                    amount = openOrder.TotalCartPrice(),
-                    order_id = openOrder.Order.Id,
-                    buyer_id = userId,
-                    payment_time = DateTime.UtcNow
-                };
 
-
-                // Execute atomic wallet payment process via Facade
                 var isSuccess = await _paymentFacadeService.PayOrderWithWalletAsync(
                     userId,
                     openOrder.TotalCartPrice(),
-                    result);
-
+                    openOrder.Order.Id);
 
                 if (isSuccess)
                 {
@@ -79,44 +66,39 @@ namespace Presentation.Areas.User.Controllers
                     return RedirectToAction("PaidOrders", "Order", new { area = "User" });
                 }
 
-
                 TempData[ErrorMessage] = "An error occurred while processing the payment or inventory.";
                 return RedirectToAction("Cart", "Order");
             }
 
-            return View(openOrder);
+            // Online Payment Pre-Process: Create Pending Transaction before redirecting to bank
+            var authority = Guid.NewGuid().ToString("N"); // Simulated Bank Gateway Token
+            await _paymentService.CreatePendingTransactionAsync(userId, openOrder.Order.Id, openOrder.TotalCartPrice(), authority);
+
+            // Redirect user to payment gateway page (Simulated view or bank endpoint)
+            ViewBag.Authority = authority;
+            return View("GoToGateway", openOrder);
         }
 
-        [HttpPost("pay-order")]
-        public async Task<IActionResult> PayOrder(bool isSuccess, bool isWalletPayment)
+        [HttpPost("pay-order-callback")]
+        public async Task<IActionResult> PayOrderCallback(string authority, bool isSuccess)
         {
+            var pendingTransaction = await _paymentService.GetTransactionByAuthorityAsync(authority);
+
+            if (pendingTransaction == null)
+            {
+                TempData[ErrorMessage] = "Invalid payment transaction context.";
+                return RedirectToAction("Cart", "Order", new { area = "User" });
+            }
+
             if (!isSuccess)
             {
+                await _paymentService.MarkTransactionAsFailedAsync(pendingTransaction.Id);
                 TempData[ErrorMessage] = "Your payment was unsuccessful.";
                 return RedirectToAction("Cart", "Order", new { area = "User" });
             }
-            var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var openOrder = await _orderService.UserOpenOrderDetail(userId);
 
-            if (openOrder == null)
-            {
-                TempData[ErrorMessage] = "No order was found.";
-                return RedirectToAction("Cart", "Order", new { area = "User" });
-            }
-
-            var result = new SuccessPaymentResult
-            {
-                trans_id = Random.Shared.NextInt64(1000000000, 9999999999),
-                amount = openOrder.TotalCartPrice(),
-                order_id = openOrder.Order.Id,
-                buyer_id = userId,
-                payment_time = DateTime.UtcNow
-            };
-
-
-            // Finalize online order payment via Facade transaction
-            var isFinalized = await _paymentFacadeService.FinalizeOnlineOrderPaymentAsync(result);
-
+            // Finalize order via Facade transaction
+            var isFinalized = await _paymentFacadeService.FinalizeOnlineOrderPaymentAsync(pendingTransaction);
 
             if (isFinalized)
             {
@@ -124,8 +106,7 @@ namespace Presentation.Areas.User.Controllers
                 return RedirectToAction("PaidOrders", "Order", new { area = "User" });
             }
 
-
-            TempData[ErrorMessage] = "An error occurred while finalizing the order or deducting inventory.";
+            TempData[ErrorMessage] = "An error occurred while finalizing order. Refunded to wallet if deducted.";
             return RedirectToAction("Cart", "Order", new { area = "User" });
         }
 
@@ -135,39 +116,40 @@ namespace Presentation.Areas.User.Controllers
             if (!ModelState.IsValid)
                 return RedirectToAction("Index", "Home");
 
-
-            if (dto.Amount < 0)
+            if (dto.Amount <= 0)
             {
-                TempData[ErrorMessage] = "Amount cannot be negative!";
+                TempData[ErrorMessage] = "Amount must be greater than zero!";
                 return RedirectToAction("Index", "Home");
             }
 
+            var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var isProfileComplete = await _userService.IsProfileDetailCompleted(userId);
 
-            var result = await _userService.IsProfileDetailCompleted(long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value));
-            if (!result)
+            if (!isProfileComplete)
                 return RedirectToAction("EditUserDetail", "Account", new { area = "User" });
 
+            // Create Pending Transaction before bank redirect for wallet charging
+            var authority = Guid.NewGuid().ToString("N");
+            await _paymentService.CreatePendingTransactionAsync(userId, null, dto.Amount, authority);
 
+            ViewBag.Authority = authority;
             return View("PayBalance", dto);
         }
 
-
-        [HttpPost("pay-balance")]
-        public async Task<IActionResult> PayBalance(bool isSuccess, DepositBalanceDto dto)
+        [HttpPost("pay-balance-callback")]
+        public async Task<IActionResult> PayBalanceCallback(string authority, bool isSuccess)
         {
+            var pendingTransaction = await _paymentService.GetTransactionByAuthorityAsync(authority);
+
+            if (pendingTransaction == null)
+            {
+                TempData[ErrorMessage] = "Invalid payment transaction context.";
+                return RedirectToAction("Index", "Home", new { area = "User" });
+            }
+
             if (isSuccess)
             {
-                var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-                var result = new SuccessPaymentResult
-                {
-                    trans_id = Random.Shared.NextInt64(1000000000, 9999999999),
-                    amount = dto.Amount * 10,
-                    buyer_id = userId,
-                    payment_time = DateTime.UtcNow
-                };
-
-                var isDeposited = await _paymentFacadeService.DepositWalletBalanceAsync(dto, result);
+                var isDeposited = await _paymentFacadeService.DepositWalletBalanceAsync(pendingTransaction);
 
                 if (isDeposited)
                 {
@@ -180,6 +162,7 @@ namespace Presentation.Areas.User.Controllers
             }
             else
             {
+                await _paymentService.MarkTransactionAsFailedAsync(pendingTransaction.Id);
                 TempData[ErrorMessage] = "Your payment was unsuccessful.";
             }
 
