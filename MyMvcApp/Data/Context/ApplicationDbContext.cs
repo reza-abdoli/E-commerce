@@ -53,6 +53,13 @@ namespace Data.Context
                 .HasForeignKey(o => o.PaymentTransactionId)
                 .IsRequired(false);
 
+            modelBuilder.Entity<ProductVariant>()
+                .Property(x => x.RowVersion)
+                .IsRowVersion();
+            modelBuilder.Entity<User>()
+                .Property(x => x.RowVersion)
+                .IsRowVersion();
+
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
             modelBuilder.Entity<Brand>().HasQueryFilter(b => !b.IsDeleted);
             modelBuilder.Entity<Product>().HasQueryFilter(p => !p.IsDeleted);

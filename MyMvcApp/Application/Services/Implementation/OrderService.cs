@@ -193,12 +193,35 @@ namespace Application.Services.Implementation
                 OrderDetails = await _orderDetailRepository.GetQuery()
                     .Include(d => d.ProductVariant)
                     .ThenInclude(v => v.Product)
-                    .Where(d => d.OrderId == order.Id)
+                    .Where(d => d.OrderId == order.Id && d.ProductVariant.StockCount > 0)
                     .ToListAsync()
             };
         }
 
         public async Task UpdatePaidOrder(long orderId, long userId, long paymentTransactionId)
+        {
+            var order = await GetOrderWithDetailsOrThrow(orderId, userId);
+            var now = DateTime.UtcNow;
+
+            foreach (var item in order.OrderDetails)
+            {
+                ApplyCurrentPriceToOrderDetail(item);
+                await RecordProductSell(item, order.Id, now);
+                await DeductStockWithRetry(item);
+            }
+
+            await ApplyShippingInfoFromUser(order, userId);
+            FinalizeOrderAsPaid(order, paymentTransactionId, now);
+
+            _orderRepository.UpdateEntity(order);
+            await _orderRepository.SaveChanges();
+
+            _logger.LogInformation(
+                "Order marked as paid. OrderId: {OrderId}, UserId: {UserId}, PaymentTransactionId: {PaymentTransactionId}",
+                orderId, userId, paymentTransactionId);
+        }
+
+        private async Task<Order> GetOrderWithDetailsOrThrow(long orderId, long userId)
         {
             var order = await _orderRepository.GetQuery()
                 .Include(o => o.OrderDetails)
@@ -211,53 +234,90 @@ namespace Application.Services.Implementation
                 throw new InvalidOperationException($"Order with ID {orderId} for User {userId} was not found.");
             }
 
-            var now = DateTime.UtcNow;
+            return order;
+        }
 
-            foreach (var item in order.OrderDetails)
+        private void ApplyCurrentPriceToOrderDetail(OrderDetail item)
+        {
+            var currentProductPrice = item.ProductVariant.Product.Price;
+            item.ProductPrice = currentProductPrice;
+            item.TotalPrice = currentProductPrice * item.Count;
+            _orderDetailRepository.UpdateEntity(item);
+        }
+
+        private async Task RecordProductSell(OrderDetail item, long orderId, DateTime saleDate)
+        {
+            await _productSellRepository.AddEntity(new ProductSell
             {
-                var currentProductPrice = item.ProductVariant.Product.Price;
+                ProductId = item.ProductVariant.ProductId,
+                OrderId = orderId,
+                SellCount = item.Count,
+                SellDate = saleDate,
+                ProductPrice = item.ProductPrice
+            });
+        }
 
-                item.ProductPrice = currentProductPrice;
-                item.TotalPrice = currentProductPrice * item.Count;
-                _orderDetailRepository.UpdateEntity(item);
+        private async Task DeductStockWithRetry(OrderDetail item, int maxRetries = 5)
+        {
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                var variant = await _variantRepository.GetEntityById(item.ProductVariantId);
 
-                await _productSellRepository.AddEntity(new ProductSell
+                if (variant == null)
                 {
-                    ProductId = item.ProductVariant.ProductId,
-                    OrderId = order.Id,
-                    SellCount = item.Count,
-                    SellDate = now,
-                    ProductPrice = currentProductPrice
-                });
+                    throw new InvalidOperationException($"Product variant {item.ProductVariantId} was not found.");
+                }
 
-                // Atomic stock deduction to prevent race conditions
-                int affectedRows = await _variantRepository.GetQuery()
-                    .Where(v => v.Id == item.ProductVariantId && v.StockCount >= item.Count)
-                    .ExecuteUpdateAsync(setters => setters
-                        .SetProperty(v => v.StockCount, v => v.StockCount - item.Count));
-
-                if (affectedRows == 0)
+                if (variant.StockCount < item.Count)
                 {
-                    throw new InvalidOperationException($"Insufficient stock for product '{item.ProductVariant.Product.Title}'.");
+                    throw new InvalidOperationException(
+                        $"Insufficient stock for product '{item.ProductVariant.Product.Title}'.");
+                }
+
+                variant.StockCount -= item.Count;
+                _variantRepository.UpdateEntity(variant);
+
+                try
+                {
+                    await _variantRepository.SaveChanges();
+                    return; // موفق شد
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    foreach (var entry in ex.Entries)
+                    {
+                        entry.State = EntityState.Detached;
+                    }
+
+                    _logger.LogWarning(
+                        "Concurrency conflict on stock deduction, retrying. ProductVariantId: {ProductVariantId}, Attempt: {Attempt}",
+                        item.ProductVariantId, attempt);
                 }
             }
 
-            var user = await _userRepository.GetEntityById(userId);
-            if (user != null)
-            {
-                order.Address = user.Address;
-                order.PostCode = user.PostCode;
-                order.DestinationCity = user.UserCity;
-                order.UserName = user.FullName;
-            }
+            throw new InvalidOperationException(
+                $"Could not deduct stock for variant {item.ProductVariantId} after {maxRetries} attempts due to concurrent updates.");
+        }
 
+
+        private async Task ApplyShippingInfoFromUser(Order order, long userId)
+        {
+            var user = await _userRepository.GetEntityById(userId);
+            if (user == null) return;
+
+            order.Address = user.Address;
+            order.PostCode = user.PostCode;
+            order.DestinationCity = user.UserCity;
+            order.UserName = user.FullName;
+        }
+
+
+        private void FinalizeOrderAsPaid(Order order, long paymentTransactionId, DateTime paymentDate)
+        {
             order.OrderState = OrderState.Paid;
-            order.PaymentDate = now;
+            order.PaymentDate = paymentDate;
             order.PaymentTransactionId = paymentTransactionId;
             order.TotalPrice = order.OrderDetails.Sum(item => item.ProductPrice * item.Count);
-
-            _orderRepository.UpdateEntity(order);
-            await _orderRepository.SaveChanges();
         }
 
         public async Task<List<Order>> GetUserPaidOrders(long userId)

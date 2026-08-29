@@ -1,4 +1,5 @@
-﻿using Data.Entities;
+﻿using System.ComponentModel.DataAnnotations;
+using Data.Entities;
 
 namespace Data.Entities
 {
@@ -13,5 +14,8 @@ namespace Data.Entities
         public string ColorCode { get; set; }
         public string SizeTitle { get; set; }
         public Product Product { get; set; }
+
+        [Timestamp]
+        public byte[] RowVersion { get; set; }
     }
 }

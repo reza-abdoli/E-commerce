@@ -132,52 +132,138 @@ public class UserService : IUserService
             "User profile updated. UserId: {UserId}. Old values -> {OldValues}. New values -> {NewValues}",
             dto.UserId, oldValues, newValues);
     }
+    // public async Task DepositBalance(DepositBalanceDto dto)
+    // {
+    //     if (dto.Amount <= 0)
+    //     {
+    //         throw new ArgumentException("Deposit amount must be greater than zero.", nameof(dto.Amount));
+    //     }
+
+    //     int affectedRows = await _userRepository.GetQuery()
+    //         .Where(u => u.Id == dto.Id)
+    //         .ExecuteUpdateAsync(setters => setters
+    //             .SetProperty(u => u.Balance, u => u.Balance + dto.Amount));
+
+    //     if (affectedRows == 0)
+    //     {
+    //         throw new InvalidOperationException($"User with ID {dto.Id} was not found.");
+    //     }
+
+    //     _logger.LogInformation("Balance deposited atomically. UserId: {UserId}, Amount: {Amount}", dto.Id, dto.Amount);
+    // }
     public async Task DepositBalance(DepositBalanceDto dto)
     {
         if (dto.Amount <= 0)
         {
             throw new ArgumentException("Deposit amount must be greater than zero.", nameof(dto.Amount));
         }
-
-        int affectedRows = await _userRepository.GetQuery()
-            .Where(u => u.Id == dto.Id)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(u => u.Balance, u => u.Balance + dto.Amount));
-
-        if (affectedRows == 0)
+        const int maxRetries = 5;
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            throw new InvalidOperationException($"User with ID {dto.Id} was not found.");
+            var user = await _userRepository.GetEntityById(dto.Id);
+            if (user == null)
+            {
+                throw new InvalidOperationException($"User with ID {dto.Id} was not found.");
+            }
+
+            user.Balance += dto.Amount;
+            _userRepository.UpdateEntity(user);
+            try
+            {
+                await _userRepository.SaveChanges();
+                _logger.LogInformation(
+                    "Balance deposited optimistically. UserId: {UserId}, Amount: {Amount}, Attempt: {Attempt}",
+                    dto.Id, dto.Amount, attempt);
+                return;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                // _userRepository.DetachEntity(user);
+                foreach (var entry in ex.Entries)
+                {
+                    entry.State = EntityState.Detached;
+                }
+                _logger.LogWarning(
+                    "Concurrency conflict while depositing balance, retrying. UserId: {UserId}, Attempt: {Attempt}",
+                    dto.Id, attempt);
+            }
         }
 
-        _logger.LogInformation("Balance deposited atomically. UserId: {UserId}, Amount: {Amount}", dto.Id, dto.Amount);
+        throw new InvalidOperationException(
+            $"Could not deposit balance for user {dto.Id} after {maxRetries} attempts due to concurrent updates.");
     }
-
     public async Task<int> GetUserBalance(long userId)
     {
         var user = await _userRepository.GetEntityById(userId);
         return user.Balance;
     }
 
+    // public async Task WithdrawBalance(long userId, int amount)
+    // {
+    //     // Atomic update at database level to prevent race conditions & negative balance
+    //     int affectedRows = await _userRepository.GetQuery()
+    //         .Where(u => u.Id == userId && u.Balance >= amount)
+    //         .ExecuteUpdateAsync(setters => setters
+    //             .SetProperty(u => u.Balance, u => u.Balance - amount));
+
+    //     if (affectedRows == 0)
+    //     {
+    //         var userExists = await _userRepository.GetQuery().AnyAsync(u => u.Id == userId);
+
+    //         if (!userExists)
+    //         {
+    //             throw new InvalidOperationException($"User with ID {userId} was not found.");
+    //         }
+
+    //         throw new InvalidOperationException("Insufficient wallet balance for this transaction.");
+    //     }
+
+    //     _logger.LogInformation("Balance withdrawn atomically. UserId: {UserId}, Amount: {Amount}", userId, amount);
+    // }
+
+
     public async Task WithdrawBalance(long userId, int amount)
     {
-        // Atomic update at database level to prevent race conditions & negative balance
-        int affectedRows = await _userRepository.GetQuery()
-            .Where(u => u.Id == userId && u.Balance >= amount)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(u => u.Balance, u => u.Balance - amount));
+        const int maxRetries = 5;
 
-        if (affectedRows == 0)
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            var userExists = await _userRepository.GetQuery().AnyAsync(u => u.Id == userId);
-
-            if (!userExists)
-            {
+            var user = await _userRepository.GetEntityById(userId);
+            if (user == null)
                 throw new InvalidOperationException($"User with ID {userId} was not found.");
-            }
 
-            throw new InvalidOperationException("Insufficient wallet balance for this transaction.");
+            if (user.Balance < amount)
+                throw new InvalidOperationException("Insufficient wallet balance for this transaction.");
+
+            user.Balance -= amount;
+            _userRepository.UpdateEntity(user);
+
+            try
+            {
+                await _userRepository.SaveChanges();
+                _logger.LogInformation(
+                    "Balance withdrawn optimistically. UserId: {UserId}, Amount: {Amount}, Attempt: {Attempt}",
+                    userId, amount, attempt);
+                return;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(
+                    "Concurrency conflict while withdrawing balance. UserId: {UserId}, Attempt: {Attempt}",
+                    userId, attempt);
+
+                #region why to change state ?
+                // باید entity رو از context detach/reload کنی وگرنه دفعه بعد
+                // همون نسخه‌ی قدیمی RowVersion رو دوباره می‌فرسته و باز conflict می‌خوره
+                #endregion
+                foreach (var entry in ex.Entries)
+                {
+                    entry.State = EntityState.Detached;
+                }
+            }
         }
 
-        _logger.LogInformation("Balance withdrawn atomically. UserId: {UserId}, Amount: {Amount}", userId, amount);
+        throw new InvalidOperationException(
+            $"Could not withdraw balance for user {userId} after {maxRetries} attempts due to concurrent updates.");
     }
 }

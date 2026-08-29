@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -12,6 +13,9 @@ public class User : BaseEntity
     public string Role { get; set; } = "User";
     public int Balance { get; set; } = 0;
 
+
+    [Timestamp]
+    public byte[] RowVersion { get; set; }
 
     //----------------------------------------------
     public string? MobileNumber { get; set; }

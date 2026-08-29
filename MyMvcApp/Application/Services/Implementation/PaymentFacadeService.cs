@@ -36,13 +36,14 @@ namespace Application.Services.Implementation
 
             try
             {
+                await _userService.WithdrawBalance(userId, totalCartPrice);
                 // Create a direct Pending/Success transaction record for audit log
                 var pendingTx = await _paymentService.CreatePendingTransactionAsync(userId, orderId, totalCartPrice, $"WALLET_{Guid.NewGuid():N}");
                 await _paymentService.UpdateTransactionStatusAsync(pendingTx.Id, PaymentStatus.Success);
 
                 // Pass paymentTx.Id as third parameter
                 await _orderService.UpdatePaidOrder(orderId, userId, pendingTx.Id);
-                await _userService.WithdrawBalance(userId, totalCartPrice);
+
 
                 await _unitOfWork.CommitTransactionAsync();
 
