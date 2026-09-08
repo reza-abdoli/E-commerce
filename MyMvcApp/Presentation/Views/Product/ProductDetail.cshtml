@@ -208,8 +208,19 @@
                             .GroupBy(v => new { v.ColorId, v.ColorTitle, v.ColorCode })
                             .ToList();
 
-                        var firstColorGroup = colorGroups.First();
-                        var firstVariant = firstColorGroup.First();
+                        @*
+                            ─── FIX ───
+                            قبلاً اینجا "firstColorGroup = colorGroups.First()" و "firstVariant = firstColorGroup.First()"
+                            محاسبه می‌شد، در حالی که پایین‌تر برای پارشال فرم از
+                            "Model.ProductVariants.First(v => v.StockCount > 0)" استفاده می‌شد.
+                            این دو تا لزوماً یک واریانت رو برنمی‌گردوندن (مثلاً اگه اولین رنگِ لیست موجودی صفر داشت
+                            ولی رنگ دیگه‌ای موجودی داشت)، در نتیجه چیزی که بصری هایلایت می‌شد با چیزی که داخل
+                            hidden input فرم قرار می‌گرفت فرق داشت.
+                            حالا هر دو دقیقاً از یک متغیر مشترک (firstVariant) میان.
+                        *@
+                        var firstVariant = Model.ProductVariants.FirstOrDefault(v => v.StockCount > 0)
+                                            ?? Model.ProductVariants.First();
+                        var firstColorGroup = colorGroups.First(g => g.Key.ColorId == firstVariant.ColorId);
 
                         @* انتخاب رنگ *@
                         <div class="mb-4">
@@ -314,6 +325,16 @@
                     @if (Model.ProductVariants != null &&
                          Model.ProductVariants.Any(v => v.StockCount > 0))
                     {
+                        @*
+                            ─── FIX ───
+                            قبلاً اینجا مستقلاً دوباره "Model.ProductVariants.First(v => v.StockCount > 0)"
+                            محاسبه می‌شد. حالا از همون "firstVariant" بالا استفاده می‌کنیم که هایلایت
+                            بصری هم دقیقاً بر اساس همونه، تا فرم همیشه با واریانتِ واقعاً نمایش داده‌شده
+                            هماهنگ بمونه.
+                        *@
+                        var defaultVariant = Model.ProductVariants.FirstOrDefault(v => v.StockCount > 0)
+                                              ?? Model.ProductVariants.First();
+
                         <div class="mb-3" id="price-wrap">
                             <span class="font-13 text-muted">قیمت:</span>
                             <div class="fw-bolder text-danger fs-4 mt-1">
@@ -326,8 +347,7 @@
                         <partial name="_AddProductToOrderForm"
                                  model="@(new Data.DTOs.Order.SubmitOrderDetailDto {
                                      ProductId = Model.Id,
-                                     ProductVariantId = Model.ProductVariants
-                                         .First(v => v.StockCount > 0).Id
+                                     ProductVariantId = defaultVariant.Id
                                  })" />
 
                         <button class="btn btn-outline-danger w-100 btn-sm mt-2" id="favorite-btn"

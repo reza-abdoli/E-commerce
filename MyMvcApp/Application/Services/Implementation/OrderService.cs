@@ -185,6 +185,7 @@ namespace Application.Services.Implementation
                 .FirstOrDefaultAsync(d => d.UserId == userId && d.OrderState == OrderState.Open);
 
             if (order == null) return null;
+            await RemoveStaleOrderDetails(order.Id);
 
             return new OpenOrderDto
             {
@@ -196,6 +197,25 @@ namespace Application.Services.Implementation
                     .Where(d => d.OrderId == order.Id && d.ProductVariant.StockCount > 0)
                     .ToListAsync()
             };
+        }
+        private async Task RemoveStaleOrderDetails(long orderId)
+        {
+            var staleDetails = await _orderDetailRepository.GetQuery()
+                .Include(d => d.ProductVariant)
+                .Where(d => d.OrderId == orderId && d.ProductVariant.StockCount <= 0)
+                .ToListAsync();
+
+            if (staleDetails.Count == 0) return;
+
+            foreach (var detail in staleDetails)
+            {
+                _orderDetailRepository.DeleteEntityPermanently(detail);
+            }
+            await _orderDetailRepository.SaveChanges();
+
+            _logger.LogInformation(
+                "Removed {Count} stale (out-of-stock) order detail(s) from OrderId: {OrderId}. OrderDetailIds: {OrderDetailIds}",
+                staleDetails.Count, orderId, string.Join(",", staleDetails.Select(d => d.Id)));
         }
 
         public async Task UpdatePaidOrder(long orderId, long userId, long paymentTransactionId)
@@ -233,6 +253,8 @@ namespace Application.Services.Implementation
             {
                 throw new InvalidOperationException($"Order with ID {orderId} for User {userId} was not found.");
             }
+            if (order.OrderState != OrderState.Open)
+                throw new InvalidOperationException($"Order {orderId} is already processed (State: {order.OrderState}).");
 
             return order;
         }
